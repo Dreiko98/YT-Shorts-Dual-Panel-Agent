@@ -78,10 +78,20 @@ make doctor         # Verificar prerequisitos
 make discover       # Descubrir nuevos episodios (requiere API)
 make download       # Descargar podcasts pendientes
 make normalize      # Normalizar audio/video
-make transcribe     # Generar transcripciones con Whisper
-make segment        # Crear clips candidatos
+make transcribe     # Generar transcripciones con Whisper ✅ IMPLEMENTADO
+make segment        # Crear clips candidatos ✅ IMPLEMENTADO
 make compose        # Generar Shorts finales
 make publish        # Subir a YouTube (requiere OAuth)
+
+# Nuevos comandos implementados:
+# Transcribir un video específico:
+make transcribe VIDEO=data/videos/mi_video.mp4 MODEL=base DEVICE=auto
+
+# Segmentar transcripción en clips:
+make segment TRANSCRIPT=data/transcripts/mi_video_transcript.json KEYWORDS="podcast,tecnología"
+
+# Componer Shorts finales:
+make compose CANDIDATES=data/segments/candidatos.json PODCAST=data/videos/podcast.mp4 BROLL=data/videos/broll.mp4 TRANSCRIPT=data/transcripts/transcript.json
 ```
 
 ## ⚡ Desarrollo
@@ -108,7 +118,34 @@ Ver archivos en `configs/` para personalizar:
 3. Crear credenciales OAuth 2.0
 4. Configurar en `.env`
 
-## 📄 Licencia
+## � Estado de Desarrollo
+
+### ✅ Completado
+- **Configuración del Proyecto**: Estructura, configuración, dependencias
+- **Base de Datos**: Schema SQLite para gestión de estado
+- **CLI Principal**: Comandos básicos con Typer + Rich
+- **Utilidades**: Módulos ffmpeg y text con funciones auxiliares
+- **Transcripción**: Módulo completo con Whisper local ✅
+- **Segmentación**: Análisis inteligente de transcripciones para clips ✅
+- **Composición**: Sistema completo de layout dual-panel ✅
+- **Subtítulos**: Subtítulos quemados con ffmpeg ✅
+- **Editor Principal**: Compositor de Shorts finales ✅
+- **Tests**: Suite completa de tests unitarios (36 tests passing)
+
+### 🚧 En Desarrollo
+- **Descarga de Videos**: Integración con yt-dlp (planificado)
+- **Normalización**: Preparación de medios (planificado)
+- **Control de Calidad**: Validación avanzada de outputs (planificado)
+- **Publicación**: Integración con YouTube API (planificado)
+
+### 🎯 Próximos Pasos
+1. ~~Implementar módulo de composición (layout dual-panel)~~ ✅ COMPLETADO
+2. ~~Desarrollar sistema de subtítulos quemados~~ ✅ COMPLETADO  
+3. Integrar descarga y normalización de videos (Hito D)
+4. Conectar con YouTube API para publicación (Hito E)
+5. Implementar descubrimiento automático de contenido (Hito F)
+
+## �📄 Licencia
 
 MIT License - Ver LICENSE para detalles.
 

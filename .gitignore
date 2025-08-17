@@ -55,11 +55,42 @@ data/transcriptions/
 data/segments/
 data/composites/
 data/logs/
+data/shorts/
+data/podcasts/
+data/broll/
+data/videos/
+data/transcripts/
 data/*.db
 data/*.sqlite3
 
 # Assets temporales
 assets/temp/
+
+# Archivos de video y audio (cualquier formato)
+*.mp4
+*.webm
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+*.mp3
+*.wav
+*.aac
+*.opus
+*.ogg
+
+# Archivos de transcripción y subtítulos
+*.srt
+*.vtt
+*.ass
+*.json.bak
+
+# Archivos temporales de ffmpeg
+*.tmp
+*.temp
+*_temp.*
+temp_*
 
 # Coverage reports
 htmlcov/
@@ -86,6 +117,31 @@ dmypy.json
 *credentials*.json
 *token*.json
 *oauth*.json
+
+# Archivos de configuración personal
+config/personal/
+.env.local
+.env.production
+.env.development
+
+# Archivos de cache y temporales del sistema
+.cache/
+.tmp/
+tmp/
+
+# Archivos específicos del pipeline
+data/*/
+!data/.gitkeep
+!data/README.md
+
+# Whisper model cache
+~/.cache/whisper/
+
+# Logs específicos del proyecto
+*.log.*
+error.log
+debug.log
+pipeline.log
 
 # Backup files
 *.bak

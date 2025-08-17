@@ -36,8 +36,10 @@ setup: $(VENV_DIR)
 	$(VENV_PIP) install --upgrade pip setuptools wheel
 	$(VENV_PIP) install -e ".[dev]"
 	@echo "📁 Creando estructura de carpetas..."
-	mkdir -p data/{raw/{podcast,broll/{subway,parkour,asmr}},normalized/{podcast,broll},transcriptions,segments,composites,logs}
-	mkdir -p assets/{fonts,frames,permissions}
+	mkdir -p data/raw/podcast data/raw/broll/subway data/raw/broll/parkour data/raw/broll/asmr
+	mkdir -p data/normalized/podcast data/normalized/broll
+	mkdir -p data/transcriptions data/segments data/composites data/logs
+	mkdir -p assets/fonts assets/frames assets/permissions
 	mkdir -p tests
 	@echo "📄 Copiando archivos de configuración..."
 	@if [ ! -f .env ]; then cp .env.example .env; echo "⚠️  Recuerda configurar .env con tus credenciales"; fi
@@ -109,16 +111,22 @@ normalize: $(VENV_DIR)
 	$(VENV_PYTHON) -m src.cli normalize
 
 transcribe: $(VENV_DIR)
-	@echo "📝 Generando transcripciones..."
-	$(VENV_PYTHON) -m src.cli transcribe
+	@echo "🎤 Transcribiendo video..."
+	@if [ -z "$(VIDEO)" ]; then echo "❌ Especifica VIDEO=ruta/al/video.mp4"; exit 1; fi
+	$(VENV_PYTHON) -m src.cli transcribe $(VIDEO) --output-dir $(or $(OUTPUT_DIR),data/transcripts) --model $(or $(MODEL),base) $(if $(LANG),--language $(LANG)) --device $(or $(DEVICE),auto)
 
 segment: $(VENV_DIR)
-	@echo "✂️  Creando clips candidatos..."
-	$(VENV_PYTHON) -m src.cli segment
+	@echo "✂️ Segmentando transcripción..."
+	@if [ -z "$(TRANSCRIPT)" ]; then echo "❌ Especifica TRANSCRIPT=ruta/al/transcript.json"; exit 1; fi
+	$(VENV_PYTHON) -m src.cli segment $(TRANSCRIPT) --output-dir $(or $(OUTPUT_DIR),data/segments) $(if $(KEYWORDS),--keywords "$(KEYWORDS)") --min-duration $(or $(MIN_DUR),15) --max-duration $(or $(MAX_DUR),59)
 
 compose: $(VENV_DIR)
-	@echo "🎬 Componiendo Shorts finales..."
-	$(VENV_PYTHON) -m src.cli compose
+	@echo "🎬 Componiendo Shorts..."
+	@if [ -z "$(CANDIDATES)" ]; then echo "❌ Especifica CANDIDATES=ruta/candidates.json"; exit 1; fi
+	@if [ -z "$(PODCAST)" ]; then echo "❌ Especifica PODCAST=ruta/podcast.mp4"; exit 1; fi
+	@if [ -z "$(BROLL)" ]; then echo "❌ Especifica BROLL=ruta/broll.mp4"; exit 1; fi
+	@if [ -z "$(TRANSCRIPT)" ]; then echo "❌ Especifica TRANSCRIPT=ruta/transcript.json"; exit 1; fi
+	$(VENV_PYTHON) -m src.cli compose $(CANDIDATES) $(PODCAST) $(BROLL) $(TRANSCRIPT) --output-dir $(or $(OUTPUT_DIR),data/shorts) --max-shorts $(or $(MAX_SHORTS),3) $(if $(NO_SUBS),--no-subtitles)
 
 publish: $(VENV_DIR)
 	@echo "📤 Publicando en YouTube..."

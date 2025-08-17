@@ -1,0 +1,41 @@
+# Configuración de layout dual-panel para YouTube Shorts
+
+name: "default_dual_panel"
+width: 1080
+height: 1920
+fps: 30
+background_color: "#000000"
+
+# Configuración de paneles
+panels:
+  podcast:
+    x: 0
+    y: 0
+    width: 1080
+    height: 960
+    has_audio: true
+    border_width: 0
+    border_color: "#FFFFFF"
+  
+  broll:
+    x: 0
+    y: 960
+    width: 1080
+    height: 960
+    has_audio: false
+    border_width: 0
+    border_color: "#FFFFFF"
+
+# Zona segura para subtítulos (dentro del panel de podcast)
+subtitle_zone:
+  x: 50
+  y: 800
+  width: 980
+  height: 120
+
+# Zona opcional para branding/logo
+branding_zone:
+  x: 20
+  y: 20
+  width: 200
+  height: 60
