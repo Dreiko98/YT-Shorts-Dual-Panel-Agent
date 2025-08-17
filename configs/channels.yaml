@@ -1,0 +1,38 @@
+# Canales de YouTube a monitorear
+channels:
+  # Ejemplo: Canal de tecnología en español
+  - id: "UCxxxxxxxxxxxxxxxxxx"
+    name: "Canal Tech ES"
+    enabled: true
+    max_videos_per_check: 5
+    min_duration_minutes: 15  # Solo procesar videos largos
+    keywords_filter: ["tecnología", "programación", "IA", "desarrollo"]
+    exclude_keywords: ["en vivo", "stream", "directo"]
+  
+  # Ejemplo: Canal de ciencia
+  - id: "UCyyyyyyyyyyyyyyyyyy" 
+    name: "Ciencia Divulgativa"
+    enabled: false  # Deshabilitado por ahora
+    max_videos_per_check: 3
+    min_duration_minutes: 20
+    keywords_filter: ["ciencia", "física", "matemáticas"]
+    exclude_keywords: ["patrocinado", "ad"]
+
+# Configuración global de descubrimiento
+discovery:
+  # Frecuencia de revisión (en horas)
+  check_interval_hours: 6
+  
+  # Días hacia atrás para buscar nuevos videos
+  lookback_days: 7
+  
+  # Filtros globales
+  global_filters:
+    min_views: 1000  # Mínimo de visualizaciones
+    max_age_days: 30  # Máximo de antigüedad
+    avoid_shorts: true  # Evitar contenido ya en formato Shorts
+    
+  # Límites de API
+  api_limits:
+    requests_per_day: 10000
+    max_results_per_request: 50

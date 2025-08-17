@@ -1,0 +1,195 @@
+# Configuración de publicación en YouTube
+publishing:
+  # Configuración por defecto para Shorts
+  defaults:
+    # Privacidad
+    privacy_status: "public"  # "private", "unlisted", "public"
+    
+    # Categoría (22 = People & Blogs, 27 = Education)
+    category_id: "27"
+    
+    # Configuración de Shorts
+    is_shorts: true
+    
+    # Idioma por defecto
+    default_language: "es"
+    
+    # Licencia
+    license: "youtube"        # "youtube" o "creativeCommon"
+
+# Plantillas de metadatos
+metadata_templates:
+  tech:
+    title_format: "🚀 {topic} en {duration}s | Tips de Programación"
+    description_template: |
+      💡 {topic} explicado en {duration} segundos!
+      
+      🎯 En este Short aprenderás:
+      ✅ {key_points}
+      
+      📺 Vídeo completo: {original_url}
+      
+      #Shorts #Programación #Tech #Desarrollo #Python #IA
+      
+      ---
+      🔔 ¿Te gustó? ¡Suscríbete para más tips de tech!
+      
+    tags:
+      - "shorts"
+      - "programación" 
+      - "tecnología"
+      - "desarrollo"
+      - "python"
+      - "ia"
+      - "tech"
+      - "tutorial"
+      - "tips"
+      
+  science:
+    title_format: "🧬 {topic} | Ciencia en {duration}s"
+    description_template: |
+      🔬 {topic} explicado de forma simple en {duration} segundos
+      
+      🎓 Lo que aprenderás:
+      ✨ {key_points}
+      
+      📖 Vídeo completo: {original_url}
+      
+      #Shorts #Ciencia #Divulgación #Educación #Física #Matemáticas
+      
+      ---
+      🌟 ¿Te gusta la ciencia? ¡Dale like y suscríbete!
+      
+    tags:
+      - "shorts"
+      - "ciencia"
+      - "divulgación"
+      - "educación"
+      - "física"
+      - "matemáticas"
+      - "experimentos"
+      - "teoría"
+
+# Configuración de thumbnails (miniaturas)
+thumbnails:
+  # Generar thumbnail automático
+  auto_generate: true
+  
+  # Usar frame del video como base
+  use_video_frame: true
+  frame_timestamp: "25%"    # Usar frame al 25% del video
+  
+  # Overlays de texto
+  text_overlay:
+    enabled: true
+    main_text: "{topic}"
+    font_size: 72
+    font_color: "#FFFFFF"
+    outline_color: "#000000"
+    outline_width: 3
+    position: "center"
+    
+  # Elementos gráficos
+  graphics:
+    add_duration_badge: true
+    add_category_icon: true
+    add_branding: false
+
+# Horarios de publicación
+schedule:
+  # Zona horaria
+  timezone: "Europe/Madrid"
+  
+  # Horarios preferidos (formato 24h)
+  preferred_times:
+    - "10:00"  # Mañana
+    - "22:00"  # Noche
+    
+  # Días de la semana (0=Domingo, 6=Sábado)
+  preferred_days: [1, 2, 3, 4, 5]  # Lunes a Viernes
+  
+  # Evitar fechas específicas
+  avoid_dates: []
+  
+  # Distribución automática
+  auto_distribute: true
+  max_per_day: 2
+
+# Configuración de playlist
+playlists:
+  # Añadir automáticamente a playlist
+  auto_add: true
+  
+  # Mapping de topics a playlists
+  topic_mapping:
+    programación: "PLxxxxxxxxx-ProgramaciónShorts"
+    ia: "PLyyyyyyyyy-IAShorts"
+    web: "PLzzzzzzzz-WebDevShorts"
+  
+  # Playlist por defecto
+  default_playlist: "PLaaaaaaaaa-TechShorts"
+
+# Configuración de respuestas automáticas (comentarios)
+auto_responses:
+  # Habilitar respuestas automáticas
+  enabled: false
+  
+  # Plantillas de respuestas
+  templates:
+    thanks: "¡Gracias por comentar! 🙏"
+    question: "¡Excelente pregunta! Lo explicaré en un próximo Short 🎯"
+    compliment: "¡Me alegra que te haya gustado! 😊"
+  
+  # Palabras clave para trigger respuestas
+  triggers:
+    thanks: ["gracias", "genial", "útil", "perfecto"]
+    question: ["¿", "como", "por qué", "explica"]
+    compliment: ["excelente", "increíble", "me encanta", "brutal"]
+
+# Análitics y seguimiento
+analytics:
+  # Trackear métricas importantes
+  track_metrics: true
+  
+  # Métricas a seguir
+  key_metrics:
+    - "views"
+    - "likes"
+    - "comments" 
+    - "shares"
+    - "subscriber_gain"
+    - "retention_rate"
+  
+  # Generar reportes
+  generate_reports: true
+  report_frequency: "weekly"  # "daily", "weekly", "monthly"
+
+# Rate limiting y seguridad
+rate_limiting:
+  # Máximo de uploads por día
+  max_uploads_per_day: 5
+  
+  # Tiempo mínimo entre uploads (minutos)
+  min_time_between_uploads: 60
+  
+  # Retry configuration
+  max_retries: 3
+  retry_delay: 300  # 5 minutos
+
+# Validaciones antes de publicar
+pre_publish_checks:
+  # Verificar duración
+  check_duration: true
+  max_duration_seconds: 60
+  
+  # Verificar resolución
+  check_resolution: true
+  required_resolution: "1080x1920"
+  
+  # Verificar audio
+  check_audio: true
+  max_loudness: -14  # LUFS
+  
+  # Verificar metadatos
+  check_metadata: true
+  required_fields: ["title", "description", "tags"]

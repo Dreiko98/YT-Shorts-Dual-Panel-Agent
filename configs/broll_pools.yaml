@@ -1,0 +1,73 @@
+# Configuración de pools de B-roll
+pools:
+  # Pool de Subway Surfers
+  subway:
+    paths: 
+      - "data/raw/broll/subway/"
+    weight: 0.5  # Peso para selección aleatoria
+    loop: true   # Permitir loop si el clip es más corto
+    max_duration: 120  # Duración máxima en segundos
+    tags: ["gaming", "acción", "colorido"]
+    
+  # Pool de parkour/deportes extremos  
+  parkour:
+    paths:
+      - "data/raw/broll/parkour/"
+      - "data/raw/broll/sports/"
+    weight: 0.3
+    loop: true
+    max_duration: 90
+    tags: ["deportes", "adrenalina", "movimiento"]
+    
+  # Pool de ASMR/relajante
+  asmr:
+    paths:
+      - "data/raw/broll/asmr/"
+      - "data/raw/broll/nature/"
+    weight: 0.2
+    loop: true
+    max_duration: 180
+    tags: ["relajante", "nature", "zen"]
+
+# Configuración de rotación para evitar repetición
+rotation:
+  # Máximo de clips consecutivos del mismo pool
+  max_consecutive_same_pool: 2
+  
+  # Máximo de usos del mismo archivo en X días
+  max_file_uses_per_week: 3
+  
+  # Tiempo mínimo entre reusos del mismo archivo (días)
+  min_reuse_interval_days: 7
+  
+  # Preferencia por diversidad
+  diversity_bonus: 0.1  # Bonus para pools menos usados recientemente
+
+# Selección inteligente basada en contenido del podcast
+content_matching:
+  enabled: true
+  
+  # Mapeo de palabras clave del podcast a tipos de B-roll
+  keyword_mapping:
+    tecnología: ["subway", "parkour"]  # Contenido dinámico para tech
+    programación: ["subway", "parkour"] 
+    ciencia: ["asmr", "nature"]        # Contenido calmado para ciencia
+    matemáticas: ["asmr"]
+    tutorial: ["parkour"]             # Algo dinámico para tutoriales
+    
+  # Peso del matching vs selección aleatoria (0.0 = solo aleatorio, 1.0 = solo matching)
+  matching_weight: 0.3
+
+# Configuración de calidad y formatos
+quality:
+  # Formatos preferidos (en orden de preferencia)
+  preferred_formats: [".mp4", ".mov", ".avi"]
+  
+  # Resolución mínima
+  min_resolution: "720p"
+  
+  # FPS mínimo
+  min_fps: 24
+  
+  # Tamaño máximo de archivo (MB)
+  max_file_size_mb: 500

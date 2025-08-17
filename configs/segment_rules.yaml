@@ -1,0 +1,140 @@
+# Reglas de segmentación para crear clips de Shorts
+segmentation:
+  # Duración de clips
+  min_seconds: 20
+  max_seconds: 60
+  optimal_seconds: 45  # Duración objetivo preferida
+  
+  # Límites por video
+  per_video_max_clips: 3
+  min_interval_between_clips: 30  # Separación mínima entre clips (segundos)
+
+# Palabras clave para identificar buenos momentos
+hook_words:
+  # Palabras que indican comienzo de explicación importante
+  start_hooks:
+    - "ojo"
+    - "importante"
+    - "clave"
+    - "fundamental"
+    - "crucial"
+    - "fíjate"
+    - "mira"
+    - "atención"
+    
+  # Frases que indican contenido valioso
+  content_hooks:
+    - "truco"
+    - "hack"
+    - "tip"
+    - "consejo"
+    - "secreto"
+    - "error común"
+    - "no sabías"
+    - "pocos conocen"
+    
+  # Indicadores de estructura temporal
+  time_hooks:
+    - "en 30 segundos"
+    - "en un minuto"
+    - "rápidamente"
+    - "paso a paso"
+    - "primero"
+    - "segundo" 
+    - "finalmente"
+    - "en resumen"
+
+# Palabras/frases a evitar (contenido no adecuado para Shorts)
+ban_words:
+  - "suscríbete"
+  - "dale like"
+  - "campana de notificaciones"
+  - "patrocinado"
+  - "sponsor"
+  - "código promocional"
+  - "descuento"
+  - "enlace en la descripción"
+  - "comentarios"
+  - "playlist"
+  
+# Sistema de puntuación para selección de clips
+scoring:
+  # Pesos para diferentes factores
+  weights:
+    length_score: 0.3        # Preferencia por duración óptima
+    keyword_density: 0.25    # Densidad de palabras clave
+    hook_start: 0.2          # Presencia de hook al inicio
+    speech_quality: 0.15     # Calidad del habla (sin muletillas)
+    content_completeness: 0.1 # Completitud de la idea
+
+  # Configuración de puntuación por longitud
+  length_scoring:
+    optimal_range: [40, 50]  # Rango óptimo en segundos
+    penalty_per_second: 0.02 # Penalización por segundo fuera del rango
+    
+  # Bonificaciones por palabras clave
+  keyword_bonuses:
+    start_hook: 0.3         # Bonus por hook al inicio
+    content_hook: 0.2       # Bonus por hook de contenido
+    time_hook: 0.1          # Bonus por indicador temporal
+    
+  # Penalizaciones
+  penalties:
+    ban_word: -0.5          # Penalización por palabra prohibida
+    too_many_pauses: -0.2   # Demasiadas pausas largas
+    incomplete_sentence: -0.1 # Frase incompleta al final
+
+# Detección de pausas y silencios
+silence_detection:
+  # Umbral de silencio en dB
+  silence_threshold: -40
+  
+  # Duración mínima para considerar silencio (ms)
+  min_silence_duration: 500
+  
+  # Duración máxima permitida de silencio (ms)
+  max_silence_duration: 2000
+  
+  # Usar silencios para cortes naturales
+  use_for_boundaries: true
+  
+  # Padding alrededor de silencios (ms)
+  silence_padding: 100
+
+# Filtros de calidad de speech
+speech_quality:
+  # Detectar y penalizar muletillas
+  filler_words: ["eh", "um", "ah", "este", "bueno", "o sea", "entonces", "vale"]
+  max_filler_ratio: 0.1    # Máximo 10% de muletillas
+  
+  # Velocidad de habla
+  min_words_per_minute: 120
+  max_words_per_minute: 200
+  
+  # Detectar repeticiones excesivas
+  max_word_repetition: 3
+
+# Algoritmo de selección de clips
+selection:
+  # Método de selección
+  method: "top_scored"     # "top_scored", "diverse", "balanced"
+  
+  # Para método "diverse", asegurar variedad temporal
+  diversity_min_gap: 120   # Mínimo 2 minutos entre clips seleccionados
+  
+  # Preferir clips del medio del video (menos intro/outro)
+  avoid_edges:
+    skip_start_seconds: 60   # Evitar primeros 60s
+    skip_end_seconds: 120    # Evitar últimos 2min
+    
+# Post-procesado de clips
+post_processing:
+  # Ajustes finos de timing
+  fine_tune_boundaries: true
+  boundary_adjustment_seconds: 2  # Ajuste máximo en segundos
+  
+  # Validar que el clip tenga sentido semánticamente
+  semantic_validation: true
+  
+  # Generar metadatos adicionales
+  generate_metadata: true

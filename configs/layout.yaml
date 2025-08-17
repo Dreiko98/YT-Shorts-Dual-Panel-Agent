@@ -1,0 +1,116 @@
+# Configuración de layout para Shorts 9:16
+canvas:
+  width: 1080
+  height: 1920
+  background_color: "#000000"  # Negro por defecto
+
+# Configuración de paneles
+panels:
+  # Panel superior - Podcast con audio y subtítulos
+  top:
+    height_ratio: 0.52  # 52% de la altura total
+    safe_margin_px: 20   # Margen seguro desde los bordes
+    safe_bottom_px: 160  # Espacio seguro para subtítulos desde abajo del panel
+    
+    # Auto-pan y crop inteligente
+    autopan: true
+    crop_mode: "smart"    # "center", "smart", "manual"
+    zoom_factor: 1.1      # Factor de zoom para recorte
+    
+    # Efectos visuales opcionales
+    border:
+      enabled: false
+      width: 2
+      color: "#FFFFFF"
+      opacity: 0.8
+    
+    # Esquinas redondeadas
+    corner_radius: 8
+    
+  # Panel inferior - B-roll muteado
+  bottom:
+    height_ratio: 0.48  # 48% de la altura total
+    muted: true        # Siempre sin audio
+    safe_margin_px: 20
+    
+    # Configuración de loop automático
+    loop_mode: "seamless"  # "seamless", "fade", "cut"
+    loop_fade_duration: 0.5  # Duración del fade en segundos
+    
+    # Efectos
+    border:
+      enabled: false
+      width: 2  
+      color: "#FFFFFF"
+      opacity: 0.6
+    
+    corner_radius: 8
+    
+    # Filtros de video opcionales
+    filters:
+      brightness: 1.0    # 1.0 = normal, <1.0 = más oscuro, >1.0 = más claro
+      saturation: 1.1    # Ligero aumento de saturación
+      blur: 0           # Sin blur por defecto
+
+# Divisor entre paneles
+divider:
+  enabled: true
+  thickness_px: 3
+  opacity: 0.8
+  color: "#333333"     # Gris oscuro
+  gradient: false      # true para gradiente, false para sólido
+  
+# Branding/watermark (opcional)
+branding:
+  enabled: false
+  logo_path: "assets/logo.png"
+  position: "bottom_right"  # "top_left", "top_right", "bottom_left", "bottom_right"
+  size_percent: 3          # Porcentaje del ancho del canvas
+  opacity: 0.7
+  margin_px: 20
+
+# Plantillas predefinidas
+templates:
+  default:
+    name: "Default 52/48"
+    panels:
+      top: { height_ratio: 0.52 }
+      bottom: { height_ratio: 0.48 }
+    divider: { thickness_px: 3 }
+    
+  balanced:
+    name: "Balanced 50/50"
+    panels:
+      top: { height_ratio: 0.50 }
+      bottom: { height_ratio: 0.50 }
+    divider: { thickness_px: 2 }
+    
+  podcast_focus:
+    name: "Podcast Focus 60/40"
+    panels:
+      top: { height_ratio: 0.60 }
+      bottom: { height_ratio: 0.40 }
+    divider: { thickness_px: 4 }
+
+# Configuración de renderizado
+rendering:
+  # Calidad de salida
+  output_format: "mp4"
+  video_codec: "libx264"
+  audio_codec: "aac"
+  
+  # Bitrates
+  video_bitrate: "2500k"
+  audio_bitrate: "128k"
+  
+  # Configuración de encoding
+  preset: "medium"      # "ultrafast", "fast", "medium", "slow", "veryslow"
+  crf: 23              # Constant Rate Factor (18-28, menor = mejor calidad)
+  
+  # Threading
+  threads: 0           # 0 = auto-detect
+  
+  # Filtros adicionales
+  filters:
+    deinterlace: false
+    noise_reduction: "light"  # "none", "light", "medium", "heavy"

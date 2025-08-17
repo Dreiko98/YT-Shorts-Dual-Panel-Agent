@@ -1,0 +1,92 @@
+# Archivo de configuración para Git
+# Archivos y carpetas a ignorar
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+
+# Data directory (archivos grandes de video/audio)
+data/raw/
+data/normalized/
+data/transcriptions/
+data/segments/
+data/composites/
+data/logs/
+data/*.db
+data/*.sqlite3
+
+# Assets temporales
+assets/temp/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# ffmpeg temp files
+*.tmp
+*.temp
+
+# YouTube credentials y tokens
+*credentials*.json
+*token*.json
+*oauth*.json
+
+# Backup files
+*.bak
+*.backup

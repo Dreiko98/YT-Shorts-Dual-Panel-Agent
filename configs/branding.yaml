@@ -1,0 +1,176 @@
+# Configuración de branding y elementos gráficos
+branding:
+  # Logo/marca principal
+  logo:
+    path: "assets/logo.png"
+    fallback_text: "YT"  # Texto si no hay logo
+    
+  # Colores de marca
+  colors:
+    primary: "#FF6B35"      # Naranja vibrante
+    secondary: "#004E89"    # Azul oscuro
+    accent: "#1A936F"       # Verde
+    text_light: "#FFFFFF"
+    text_dark: "#333333"
+    background: "#000000"
+
+# Configuración de fuentes
+fonts:
+  # Fuente principal para títulos
+  primary:
+    family: "Montserrat"
+    weights: ["400", "600", "700", "800"]
+    fallback: ["Arial", "sans-serif"]
+    
+  # Fuente para subtítulos
+  subtitle:
+    family: "Inter"
+    weights: ["400", "500", "600"]
+    fallback: ["Helvetica", "Arial", "sans-serif"]
+    
+  # Fuente monoespaciada para código
+  mono:
+    family: "JetBrains Mono"
+    weights: ["400", "500"]
+    fallback: ["Consolas", "Monaco", "monospace"]
+
+# Elementos de interfaz
+ui_elements:
+  # Indicadores de duración
+  duration_badge:
+    enabled: true
+    position: "top_right"
+    background_color: "#000000"
+    background_opacity: 0.8
+    text_color: "#FFFFFF"
+    font_size: 14
+    padding: [4, 8]
+    border_radius: 12
+    
+  # Indicador de audio/mute
+  audio_indicators:
+    mute_icon: "🔇"
+    sound_icon: "🔊"
+    size: 16
+    position: "bottom_right"
+    
+  # Divisores y separadores
+  dividers:
+    default_color: "#333333"
+    default_opacity: 0.8
+    default_thickness: 3
+    styles:
+      solid: true
+      gradient: false
+      animated: false
+
+# Plantillas de thumbnails
+thumbnail_templates:
+  tech:
+    background_gradient: ["#FF6B35", "#004E89"]
+    text_color: "#FFFFFF"
+    text_outline: true
+    outline_color: "#000000"
+    outline_width: 3
+    icons: ["💻", "🚀", "⚡"]
+    
+  science:
+    background_gradient: ["#1A936F", "#004E89"]
+    text_color: "#FFFFFF"
+    text_outline: true
+    outline_color: "#000000"
+    outline_width: 3
+    icons: ["🧬", "🔬", "🌟"]
+
+# Overlays y watermarks
+overlays:
+  # Watermark principal
+  watermark:
+    enabled: false  # Deshabilitado por defecto
+    image: "assets/watermark.png"
+    position: "bottom_right"
+    size_percent: 8
+    opacity: 0.6
+    margin: [20, 20]
+    
+  # Overlay de categoría
+  category_overlay:
+    enabled: true
+    templates:
+      tech: "💻 TECH"
+      science: "🔬 CIENCIA"
+      tutorial: "📚 TUTORIAL"
+    font_size: 16
+    position: "top_left"
+    background: true
+    background_color: "#000000"
+    background_opacity: 0.7
+    text_color: "#FFFFFF"
+    padding: [4, 12]
+    border_radius: 16
+
+# Animaciones y transiciones
+animations:
+  # Transición de entrada
+  intro:
+    enabled: true
+    duration: 0.5
+    type: "fade_in"  # "fade_in", "slide_in", "zoom_in"
+    
+  # Transición de salida
+  outro:
+    enabled: true
+    duration: 0.3
+    type: "fade_out"
+    
+  # Animación del divisor
+  divider_animation:
+    enabled: false
+    type: "pulse"  # "pulse", "glow", "slide"
+    duration: 2.0
+    
+  # Efectos de texto
+  text_effects:
+    subtitle_appear: "fade_in"
+    subtitle_disappear: "fade_out"
+    subtitle_timing: 0.2
+
+# Assets por defecto
+default_assets:
+  # Imagen de fondo por defecto
+  default_background: "assets/backgrounds/default.jpg"
+  
+  # Frame de loading/buffer
+  loading_frame: "assets/frames/loading.png"
+  
+  # Íconos por categoría
+  category_icons:
+    tech: "assets/icons/tech.svg"
+    science: "assets/icons/science.svg"
+    tutorial: "assets/icons/tutorial.svg"
+    gaming: "assets/icons/gaming.svg"
+
+# Calidad y exportación
+export_settings:
+  # Perfiles de calidad
+  quality_profiles:
+    high:
+      video_bitrate: "3000k"
+      audio_bitrate: "192k" 
+      crf: 18
+    medium:
+      video_bitrate: "2500k"
+      audio_bitrate: "128k"
+      crf: 23
+    low:
+      video_bitrate: "1800k"
+      audio_bitrate: "96k"
+      crf: 28
+      
+  # Configuración por defecto
+  default_profile: "medium"
+  
+  # Formato de salida
+  output_format: "mp4"
+  container_options:
+    movflags: "+faststart"  # Para streaming optimizado
