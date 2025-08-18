@@ -21,6 +21,23 @@ from pathlib import Path
 app = Flask(__name__)
 app.secret_key = 'dev-key-temporal'
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Docker"""
+    try:
+        db = PipelineDB()
+        stats = db.get_queue_stats()
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'queue_stats': stats
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
+
 # Template HTML simple pero funcional
 HTML_TEMPLATE = """
 <!DOCTYPE html>

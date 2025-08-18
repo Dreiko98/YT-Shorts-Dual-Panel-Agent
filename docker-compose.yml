@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  yt-shorts-agent:
+    build: .
+    container_name: yt-shorts-pipeline
+    restart: unless-stopped
+    ports:
+      - "8081:8081"  # Web Interface
+      - "5000:5000"  # API adicional si es necesario
+    volumes:
+      - ./data:/app/data              # Datos persistentes
+      - ./logs:/app/logs              # Logs
+      - ./configs:/app/configs        # Configuraciones
+      - ./outputs:/app/outputs        # Videos generados
+    environment:
+      - PYTHONPATH=/app
+      - FLASK_ENV=production
+      - TZ=Europe/Madrid
+    env_file:
+      - .env
+    networks:
+      - yt-shorts-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis para caching (opcional pero recomendado)
+  redis:
+    image: redis:7-alpine
+    container_name: yt-shorts-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - yt-shorts-network
+    command: redis-server --appendonly yes
+
+  # Nginx reverse proxy (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: yt-shorts-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - yt-shorts-agent
+    networks:
+      - yt-shorts-network
+
+volumes:
+  redis_data:
+
+networks:
+  yt-shorts-network:
+    driver: bridge

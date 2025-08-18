@@ -1,6 +1,6 @@
 # Canales de YouTube a monitorear
 channels:
-  # Ejemplo: Canal de tecnología en español
+  # midudev
   - id: "UC8LeXCWOalN8SxlrPcG-PaQ"
     name: "midudev"
     enabled: true
@@ -9,14 +9,35 @@ channels:
     keywords_filter: ["tecnología", "programación", "IA", "desarrollo"]
     exclude_keywords: ["en vivo", "stream", "directo"]
   
-  # Ejemplo: Canal de ciencia
+  # nate gentile
   - id: "UC36xmz34q02JYaZYKrMwXng" 
     name: "Nate Gentile"
-    enabled: false  # Deshabilitado por ahora
+    enabled: true  # Deshabilitado por ahora
     max_videos_per_check: 3
     min_duration_minutes: 10
     keywords_filter: ["tecnología", "programación", "IA", "desarrollo"]
     exclude_keywords: ["patrocinado", "ad"]
+  
+  # dotcsv
+  - id: "UCOTko-zmnQTcOxSRdg5_uOQ"
+    name: "dotcsv"
+    enabled: true
+    max_videos_per_check: 4
+    min_duration_minutes: 6
+    keywords_filter: ["inteligencia artificial", "machine learning"]
+    exclude_keywords: ["en vivo", "stream", "directo"]
+  
+  # dotcsv lab
+  - id: "UC9a8b7c6d5e4f3g2h1i0j1k2"
+    name: "dotcsv lab"
+    enabled: true
+    max_videos_per_check: 3
+    min_duration_minutes: 8
+    keywords_filter: ["inteligencia artificial", "machine learning"]
+    exclude_keywords: ["en vivo", "stream", "directo"]
+
+  # 
+  
 
 # Configuración global de descubrimiento
 discovery:
