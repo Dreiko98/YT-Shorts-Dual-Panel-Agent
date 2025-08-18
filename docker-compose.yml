@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     ports:
       - "8081:8081"  # Web Interface
-      - "5000:5000"  # API adicional si es necesario
+      - "5001:5001"  # API adicional si es necesario
     volumes:
       - ./data:/app/data              # Datos persistentes
       - ./logs:/app/logs              # Logs

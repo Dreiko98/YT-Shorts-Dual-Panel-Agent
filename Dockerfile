@@ -30,7 +30,7 @@ ENV PYTHONPATH=/app
 ENV FLASK_ENV=production
 
 # Exponer puertos
-EXPOSE 8081 5000
+EXPOSE 8081 5001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

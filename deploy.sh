@@ -11,7 +11,7 @@ echo "==============================================="
 SERVER_IP="100.87.242.53"
 SERVER_USER="germanmallo"
 SERVER_PASSWORD="0301"
-REMOTE_PATH="/proyectos/yt-shorts-agent"
+REMOTE_PATH="~/proyectos/yt-shorts-agent"
 
 # Colores para output
 RED='\033[0;31m'
@@ -59,25 +59,34 @@ log_success "Conexión al servidor establecida"
 # 2. Preparar el servidor
 log_info "🛠️ Preparando el servidor..."
 remote_exec "
-    # Instalar Docker si no existe
+    # Crear directorio del proyecto en el home del usuario
+    mkdir -p ~/proyectos/yt-shorts-agent
+    cd ~/proyectos/yt-shorts-agent
+    
+    # Verificar si Docker está instalado
     if ! command -v docker &> /dev/null; then
+        echo 'Docker no está instalado. Instalando...'
         curl -fsSL https://get.docker.com -o get-docker.sh
         sudo sh get-docker.sh
-        sudo usermod -aG docker $USER
+        sudo usermod -aG docker \$USER
+        echo 'Docker instalado. Puede que necesites hacer logout/login para usar Docker sin sudo.'
+    else
+        echo 'Docker ya está instalado'
     fi
     
-    # Instalar Docker Compose si no existe
+    # Verificar Docker Compose
     if ! command -v docker-compose &> /dev/null; then
+        echo 'Docker Compose no está instalado. Instalando...'
         sudo curl -L \"https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)\" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
+    else
+        echo 'Docker Compose ya está instalado'
     fi
     
-    # Crear directorio del proyecto
-    sudo mkdir -p $REMOTE_PATH
-    sudo chown -R $USER:$USER $REMOTE_PATH
-    
     # Crear directorios necesarios
-    mkdir -p $REMOTE_PATH/{data,logs,outputs,ssl}
+    mkdir -p {data,logs,outputs,ssl}
+    
+    echo 'Servidor preparado'
 "
 log_success "Servidor preparado"
 
@@ -106,10 +115,10 @@ tar --exclude-from=.deployignore -czf yt-shorts-deployment.tar.gz .
 
 # Subir y extraer
 log_info "📡 Transfiriendo archivos..."
-copy_to_server "yt-shorts-deployment.tar.gz" "$REMOTE_PATH/"
+copy_to_server "yt-shorts-deployment.tar.gz" "~/proyectos/yt-shorts-agent/"
 
 remote_exec "
-    cd $REMOTE_PATH
+    cd ~/proyectos/yt-shorts-agent
     tar -xzf yt-shorts-deployment.tar.gz
     rm yt-shorts-deployment.tar.gz
     chmod +x *.sh
@@ -149,17 +158,17 @@ WEB_PORT=8081
 # Timezone
 TZ=Europe/Madrid
 EOF
-    copy_to_server "temp.env" "$REMOTE_PATH/.env"
+    copy_to_server "temp.env" "~/proyectos/yt-shorts-agent/.env"
     rm temp.env
 else
-    copy_to_server ".env" "$REMOTE_PATH/.env"
+    copy_to_server ".env" "~/proyectos/yt-shorts-agent/.env"
 fi
 log_success "Variables de entorno configuradas"
 
 # 5. Construir y ejecutar contenedores
 log_info "🐋 Construyendo y ejecutando contenedores..."
 remote_exec "
-    cd $REMOTE_PATH
+    cd ~/proyectos/yt-shorts-agent
     
     # Detener servicios anteriores si existen
     docker-compose down 2>/dev/null || true
@@ -195,12 +204,12 @@ if remote_exec "curl -f http://localhost:8081/health >/dev/null 2>&1"; then
     echo "   Reiniciar: docker-compose restart"
     echo "   Detener: docker-compose down"
     echo ""
-    echo "📁 Ubicación en servidor: $REMOTE_PATH"
+    echo "📁 Ubicación en servidor: ~/proyectos/yt-shorts-agent"
     echo "==============================================="
 else
     log_error "El servicio web no responde correctamente"
     log_info "Revisando logs..."
-    remote_exec "cd $REMOTE_PATH && docker-compose logs --tail=50"
+    remote_exec "cd ~/proyectos/yt-shorts-agent && docker-compose logs --tail=50"
     exit 1
 fi
 

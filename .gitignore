@@ -29,6 +29,11 @@ MANIFEST
 venv/
 ENV/
 
+# Deployment files
+*.tar.gz
+*.zip
+.deployignore
+
 # OAuth and API secrets (SECURITY)
 *oauth*.py
 *secret*.py

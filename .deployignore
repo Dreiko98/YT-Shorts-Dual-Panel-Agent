@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+.pytest_cache/
+.DS_Store
+*.db
+logs/
+outputs/
+data/videos/
+data/raw/
+temp/
