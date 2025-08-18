@@ -4,6 +4,7 @@ Editor principal para composición de YouTube Shorts.
 
 import json
 import logging
+import subprocess
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 import tempfile
@@ -203,7 +204,7 @@ class ShortComposer:
     def _prepare_broll_segment(self, broll_video_path: Path,
                               target_duration: float,
                               temp_dir: Path) -> Path:
-        """Preparar segmento de B-roll con duración objetivo."""
+        """Preparar segmento de B-roll con duración objetivo y velocidad x1.75."""
         segment_path = temp_dir / f"broll_segment_{int(target_duration*1000)}.mp4"
         self.temp_files.append(segment_path)
         
@@ -214,31 +215,69 @@ class ShortComposer:
         except FFmpegError:
             raise CompositionError("Error analizando video de B-roll")
         
-        if broll_duration >= target_duration:
+        # Calcular duración necesaria para acelerar a x1.75
+        # Si necesitamos 40s a velocidad normal, necesitamos 40*1.75 = 70s de material original
+        speed_factor = 1.75
+        required_duration = target_duration * speed_factor
+        
+        if broll_duration >= required_duration:
             # B-roll es suficientemente largo, extraer segmento
             success = extract_video_segment(
                 broll_video_path, segment_path,
-                0, target_duration
+                0, required_duration
             )
         else:
             # B-roll es corto, crear loop
             success = create_video_loop(
-                broll_video_path, segment_path, target_duration
+                broll_video_path, segment_path, required_duration
             )
         
         if not success or not segment_path.exists():
             raise CompositionError("Error preparando segmento de B-roll")
         
-        # Remover audio del B-roll
-        broll_no_audio_path = temp_dir / f"broll_no_audio_{int(target_duration*1000)}.mp4"
-        self.temp_files.append(broll_no_audio_path)
+        # Acelerar el video a x1.75 y remover audio
+        broll_sped_path = temp_dir / f"broll_sped_{int(target_duration*1000)}.mp4"
+        self.temp_files.append(broll_sped_path)
         
-        success = remove_audio_track(segment_path, broll_no_audio_path)
+        success = self._speed_up_video(segment_path, broll_sped_path, speed_factor)
         if not success:
-            logger.warning("No se pudo remover audio del B-roll, continuando...")
-            return segment_path
+            raise CompositionError("Error acelerando B-roll")
         
-        return broll_no_audio_path
+        return broll_sped_path
+    
+    def _speed_up_video(self, input_path: Path, output_path: Path, speed_factor: float) -> bool:
+        """Acelerar video usando ffmpeg."""
+        try:
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", str(input_path),
+                "-vf", f"setpts={1/speed_factor}*PTS",
+                "-an",  # Remover audio
+                "-c:v", "libx264",
+                "-preset", "medium",
+                "-crf", "23",
+                str(output_path)
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            
+            if result.returncode != 0:
+                logger.error(f"Error acelerando video: {result.stderr}")
+                return False
+                
+            return output_path.exists()
+            
+        except subprocess.TimeoutExpired:
+            logger.error("Timeout acelerando video")
+            return False
+        except Exception as e:
+            logger.error(f"Error acelerando video: {e}")
+            return False
     
     def _create_dual_panel_composition(self, podcast_path: Path,
                                      broll_path: Path,
@@ -289,13 +328,23 @@ class ShortComposer:
         
         # Ajustar timing de subtítulos al clip
         adjusted_subtitles = []
+        tolerance = 0.1  # Tolerancia de 100ms para problemas de precisión
+        
         for subtitle in subtitles:
             # Restar el tiempo de inicio del candidato
             adjusted_start = subtitle.start_time - candidate.start_time
             adjusted_end = subtitle.end_time - candidate.start_time
             
+            # Aplicar tolerancia para problemas de precisión
+            if adjusted_start < -tolerance:
+                continue  # Subtítulo está muy antes del clip
+            
+            # Ajustar inicio negativo pequeño a 0
+            if adjusted_start < 0:
+                adjusted_start = 0.0
+            
             # Solo incluir subtítulos que estén dentro del rango
-            if adjusted_start >= 0 and adjusted_start < candidate.duration:
+            if adjusted_start < candidate.duration:
                 adjusted_end = min(adjusted_end, candidate.duration)
                 
                 if adjusted_end > adjusted_start:
@@ -428,8 +477,9 @@ def compose_short_from_files(podcast_video: Path, broll_video: Path,
     # Crear compositor
     composer = ShortComposer(layout_config)
     
-    # Componer Shorts
+    # Componer Shorts (con subtítulos habilitados)
     return composer.compose_multiple_shorts(
         candidates, podcast_video, broll_video,
-        transcript_data, output_dir, max_shorts
+        transcript_data, output_dir, max_shorts,
+        include_subtitles=True
     )

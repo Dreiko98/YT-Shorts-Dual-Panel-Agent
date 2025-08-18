@@ -55,10 +55,27 @@ panels:
 # Divisor entre paneles
 divider:
   enabled: true
-  thickness_px: 3
+  thickness_px: 80        # Aumentado para espacio de subtítulos
   opacity: 0.8
-  color: "#333333"     # Gris oscuro
-  gradient: false      # true para gradiente, false para sólido
+  color: "#000000"        # Negro para fondo de subtítulos
+  gradient: false
+
+# Configuración de subtítulos
+subtitles:
+  enabled: true
+  position: "divider"     # "divider", "top_panel", "bottom_panel", "overlay"
+  style:
+    font_family: "Arial"
+    font_size: 48
+    font_color: "#FFFFFF"
+    font_weight: "bold"
+    outline_color: "#000000"
+    outline_width: 3
+    background_color: null
+    text_align: "center"
+    margin_vertical: 10    # Margen desde bordes del divisor
+    max_width_percent: 90  # 90% del ancho del canvas
+    line_spacing: 1.2
   
 # Branding/watermark (opcional)
 branding:

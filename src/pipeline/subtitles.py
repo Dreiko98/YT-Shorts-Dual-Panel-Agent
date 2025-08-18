@@ -25,19 +25,20 @@ class SubtitleError(Exception):
 class SubtitleStyle:
     """Configuración de estilo de subtítulos."""
     font_family: str = "Arial"
-    font_size: int = 64  # Aumentado de 48 a 64 para mayor visibilidad
+    font_size: int = 52  # Aumentado para mejor visibilidad
     font_color: str = "#FFFFFF"
     font_weight: str = "bold"
     outline_color: str = "#000000"
-    outline_width: int = 3  # Aumentado de 2 a 3 para mayor contraste
+    outline_width: int = 3
     shadow_color: str = "#000000"
     shadow_offset: Tuple[int, int] = (2, 2)
     background_color: Optional[str] = None
     background_alpha: float = 0.0
     text_align: str = "center"
-    margin_bottom: int = 200  # Aumentado de 100 a 200 para posición más visible
-    max_width: int = 900
+    margin_bottom: int = 960  # Centro del canvas (mitad de 1920)
+    max_width: int = 950
     line_spacing: float = 1.2
+    position: str = "center"  # Centrado en el divisor
     
     def to_ffmpeg_style(self) -> str:
         """Convertir estilo a formato ffmpeg."""

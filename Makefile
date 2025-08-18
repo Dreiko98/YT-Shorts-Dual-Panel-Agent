@@ -21,9 +21,13 @@ help:
 	@echo "  download    - Descargar podcasts pendientes"
 	@echo "  normalize   - Normalizar audio/video"
 	@echo "  transcribe  - Generar transcripciones con Whisper"
-	@echo "  segment     - Crear clips candidatos"
+	@echo "  segment     - Crear clips candidatos (método tradicional)"
+	@echo "  segment-ai  - Crear clips candidatos con IA (ChatGPT) 🤖"
 	@echo "  compose     - Generar Shorts finales"
 	@echo "  publish     - Subir a YouTube (requiere OAuth)"
+	@echo ""
+	@echo "Pipeline Completo:"
+	@echo "  pipeline-ai - Todo en uno: transcribir → IA → componer 🚀"
 	@echo ""
 	@echo "Desarrollo:"
 	@echo "  lint        - Ejecutar linting (ruff + black)"
@@ -116,9 +120,22 @@ transcribe: $(VENV_DIR)
 	$(VENV_PYTHON) -m src.cli transcribe $(VIDEO) --output-dir $(or $(OUTPUT_DIR),data/transcripts) --model $(or $(MODEL),base) $(if $(LANG),--language $(LANG)) --device $(or $(DEVICE),auto)
 
 segment: $(VENV_DIR)
-	@echo "✂️ Segmentando transcripción..."
+	@echo "✂️ Segmentando transcripción (método tradicional)..."
 	@if [ -z "$(TRANSCRIPT)" ]; then echo "❌ Especifica TRANSCRIPT=ruta/al/transcript.json"; exit 1; fi
 	$(VENV_PYTHON) -m src.cli segment $(TRANSCRIPT) --output-dir $(or $(OUTPUT_DIR),data/segments) $(if $(KEYWORDS),--keywords "$(KEYWORDS)") --min-duration $(or $(MIN_DUR),15) --max-duration $(or $(MAX_DUR),59)
+
+segment-ai: $(VENV_DIR)
+	@echo "🤖 Segmentando transcripción con IA..."
+	@if [ -z "$(TRANSCRIPT)" ]; then echo "❌ Especifica TRANSCRIPT=ruta/al/transcript.json"; exit 1; fi
+	@if [ -z "$(OPENAI_API_KEY)" ]; then echo "❌ Configura OPENAI_API_KEY en .env"; exit 1; fi
+	$(VENV_PYTHON) -m src.cli segment-ai $(TRANSCRIPT) --output-dir $(or $(OUTPUT_DIR),data/segments) $(if $(KEYWORDS),--keywords "$(KEYWORDS)") --max-clips $(or $(MAX_CLIPS),5) --min-duration $(or $(MIN_DUR),15) --max-duration $(or $(MAX_DUR),59)
+
+pipeline-ai: $(VENV_DIR)
+	@echo "🚀 Ejecutando pipeline completo con IA..."
+	@if [ -z "$(PODCAST)" ]; then echo "❌ Especifica PODCAST=ruta/podcast.mp4"; exit 1; fi
+	@if [ -z "$(BROLL)" ]; then echo "❌ Especifica BROLL=ruta/broll.mp4"; exit 1; fi
+	@if [ -z "$(OPENAI_API_KEY)" ]; then echo "❌ Configura OPENAI_API_KEY en .env"; exit 1; fi
+	$(VENV_PYTHON) -m src.cli pipeline-ai $(PODCAST) $(BROLL) $(if $(KEYWORDS),--keywords "$(KEYWORDS)") --max-shorts $(or $(MAX_SHORTS),3) --whisper-model $(or $(MODEL),small) --language $(or $(LANG),es) --output-base $(or $(OUTPUT_BASE),data)
 
 compose: $(VENV_DIR)
 	@echo "🎬 Componiendo Shorts..."
