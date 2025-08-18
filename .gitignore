@@ -28,6 +28,22 @@ MANIFEST
 .venv/
 venv/
 ENV/
+
+# OAuth and API secrets (SECURITY)
+*oauth*.py
+*secret*.py
+*credentials*.py
+manual_oauth.py
+setup_oauth.py
+api_keys.py
+client_secret*.json
+credentials.json
+token.json
+oauth_token.json
+
+# Telegram bot token files
+bot_token.txt
+telegram_config.py
 env/
 
 # IDE

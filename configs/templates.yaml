@@ -1,0 +1,143 @@
+channel_preferences:
+  auto_select_by_content: true
+  content_type_mapping:
+    gaming: gaming_style
+    lifestyle: minimal_elegant
+    tech: modern_highlighted
+    tutorial: clean_centered
+  default_template: clean_centered
+  fallback_template: minimal_elegant
+global_settings:
+  enable_a_b_testing: false
+  quality_threshold_for_templates: 70
+  template_rotation: false
+templates:
+  clean_centered:
+    audio_effects:
+      compressor: true
+      noise_reduction: false
+      normalize: true
+      target_lufs: -18
+    branding:
+      logo_opacity: 0.7
+      logo_position: bottom_right
+      logo_size: 100
+      watermark: false
+    description: Subtítulos centrados limpios, sin decoraciones
+    enabled: true
+    name: Clean Centered
+    priority: 100
+    subtitle_style:
+      background: false
+      font_color: white
+      font_family: Arial Bold
+      font_size: 48
+      outline_color: black
+      outline_width: 2
+      position: center
+      shadow: true
+      shadow_offset:
+      - 2
+      - 2
+    video_effects:
+      blur_background: false
+      color_grading: neutral
+      transition: fade
+      zoom_effect: false
+  gaming_style:
+    audio_effects:
+      compressor: true
+      noise_reduction: false
+      normalize: true
+      target_lufs: -14
+    branding:
+      logo_opacity: 1.0
+      logo_position: top_center
+      logo_size: 150
+      watermark: true
+    description: Estilo gaming con efectos llamativos
+    enabled: false
+    name: Gaming Style
+    priority: 40
+    subtitle_style:
+      background: true
+      background_color: rgba(0,0,0,0.9)
+      background_padding: 15
+      font_color: '#00ff00'
+      font_family: Impact
+      font_size: 56
+      glow_color: '#00ff00'
+      glow_effect: true
+      outline_color: black
+      outline_width: 3
+      position: center
+      shadow: false
+    video_effects:
+      blur_background: false
+      color_grading: high_contrast
+      transition: zoom
+      zoom_effect: true
+  minimal_elegant:
+    audio_effects:
+      compressor: false
+      noise_reduction: true
+      normalize: true
+      target_lufs: -20
+    branding:
+      logo_opacity: 0.5
+      logo_position: top_left
+      logo_size: 80
+      watermark: false
+    description: Estilo minimalista y elegante
+    enabled: true
+    name: Minimal Elegant
+    priority: 60
+    subtitle_style:
+      background: false
+      font_color: '#f5f5f5'
+      font_family: Georgia
+      font_size: 44
+      outline_color: none
+      outline_width: 0
+      position: lower_center
+      shadow: true
+      shadow_color: rgba(0,0,0,0.6)
+      shadow_offset:
+      - 1
+      - 1
+    video_effects:
+      blur_background: true
+      color_grading: cinematic
+      transition: crossfade
+      zoom_effect: false
+  modern_highlighted:
+    audio_effects:
+      compressor: true
+      noise_reduction: true
+      normalize: true
+      target_lufs: -16
+    branding:
+      logo_opacity: 0.8
+      logo_position: bottom_right
+      logo_size: 120
+      watermark: true
+    description: Subtítulos con fondo destacado y efectos modernos
+    enabled: true
+    name: Modern Highlighted
+    priority: 80
+    subtitle_style:
+      background: true
+      background_color: rgba(0,0,0,0.8)
+      background_padding: 20
+      font_color: white
+      font_family: Montserrat Bold
+      font_size: 52
+      outline_color: none
+      outline_width: 0
+      position: center
+      shadow: false
+    video_effects:
+      blur_background: false
+      color_grading: vibrant
+      transition: slide
+      zoom_effect: true

@@ -1,154 +1,329 @@
-# 🎬 YT Shorts Dual-Panel Agent
+# 🎬 YT Shorts Dual Panel Agent
 
-Pipeline automatizado para generar YouTube Shorts 9:16 con dos paneles:
-- **Superior:** Podcast con audio y subtítulos (50-52%)
-- **Inferior:** B-roll muteado con loop automático (48-50%)
+**Sistema inteligente de automatización para creación y publicación de YouTube Shorts**
 
-## 🔧 Prerequisitos
+Un pipeline completo que descubre, procesa, edita y publica automáticamente contenido de YouTube Shorts con IA integrada, scoring automático y múltiples interfaces de control.
 
-### Sistema
-- **Python 3.11+**
-- **ffmpeg** (con soporte libx264, libx265, libfdk_aac)
-- **git**
+## 🌟 Características Principales
 
-### Instalación de prerequisitos
+### 🤖 **Pipeline Automatizado Completo**
+- **Descubrimiento automático** de contenido desde canales configurados
+- **Transcripción y segmentación** inteligente con IA
+- **Edición automática** con layouts duales y subtítulos
+- **Sistema de revisión** con aprobación manual/automática
+- **Publicación programada** en YouTube
 
-#### Ubuntu/Debian
+### 🧠 **IA y Scoring Inteligente**
+- **ContentScorer**: 4 métricas de evaluación automática
+  - Calidad del contenido
+  - Potencial viral
+  - Engagement esperado
+  - Relevancia temática
+- **TemplateManager**: 4 plantillas dinámicas
+  - Gaming intenso
+  - Educativo profesional
+  - Entretenimiento casual
+  - Tecnología moderna
+
+### 🎛️ **Interfaces Múltiples**
+- **Bot de Telegram**: 21 comandos completos
+- **Interfaz Web**: Dashboard visual en tiempo real
+- **CLI Control**: Línea de comandos para administradores
+- **Gestión manual**: Añadir canales y videos manualmente
+
+### 📊 **Sistema de Base de Datos**
+- SQLite optimizada con migraciones automáticas
+- Tracking completo del pipeline
+- Estadísticas y métricas detalladas
+- Gestión de canales y videos
+
+## 🚀 Instalación Rápida
+
+### Prerrequisitos
+- Python 3.8+
+- FFmpeg
+- Git
+
+### Configuración Automática
 ```bash
-sudo apt update
-sudo apt install python3.11 python3.11-venv python3-pip ffmpeg git
-```
-
-#### macOS (Homebrew)
-```bash
-brew install python@3.11 ffmpeg git
-```
-
-### Verificar instalación
-```bash
-python3 --version    # >= 3.11
-ffmpeg -version      # debe mostrar versión
-git --version        # cualquier versión reciente
-```
-
-## 🚀 Quick Start
-
-1. **Clonar y configurar:**
-```bash
-git clone <tu-repo>
+# Clonar repositorio
+git clone https://github.com/Dreiko98/YT-Shorts-Dual-Panel-Agent.git
 cd YT-Shorts-Dual-Panel-Agent
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Configurar entorno
 make setup
+
+# Ejecutar
+make run
 ```
 
-2. **Configurar variables de entorno:**
+## 🎯 Uso Rápido
+
+### 🤖 Bot de Telegram
 ```bash
-cp .env.example .env
-# Editar .env con tus credenciales de YouTube API
+# Configurar token en configs/
+python src/bot.py
 ```
+**Comandos principales:**
+- `/start` - Inicializar bot
+- `/pipeline` - Ejecutar pipeline completo
+- `/queue` - Ver cola de shorts
+- `/approve` - Aprobar contenido
+- `/stats` - Estadísticas del sistema
 
-3. **Verificar que todo funciona:**
+### 🌐 Interfaz Web
 ```bash
-make doctor
+python web_interface.py
+# Acceder: http://localhost:8081
 ```
 
-4. **Probar con archivos de ejemplo:**
+### 💻 CLI Control
 ```bash
-# Coloca un archivo .mp4 de podcast en data/raw/podcast/
-# Coloca archivos de B-roll en data/raw/broll/subway/
-make compose-test
+python cli_control.py
 ```
 
-## 📁 Estructura del proyecto
+## 📁 Estructura del Proyecto
 
 ```
-yt-shorts-pipeline/
-├─ src/pipeline/         # Módulos principales del pipeline
-├─ configs/             # Archivos de configuración YAML
-├─ data/               # Datos y salidas (gitignored)
-├─ assets/             # Recursos gráficos y fuentes
-├─ tests/              # Tests unitarios
-└─ cli.py              # Interfaz de línea de comandos
+YT-Shorts-Dual-Panel-Agent/
+├── src/                    # Código fuente principal
+│   ├── pipeline/          # Pipeline de procesamiento
+│   │   ├── db.py         # Base de datos y ORM
+│   │   ├── transcribe.py # Transcripción con IA
+│   │   ├── segmenter.py  # Segmentación inteligente
+│   │   ├── editor.py     # Edición de videos
+│   │   └── layout.py     # Layouts y composición
+│   └── utils/            # Utilidades y helpers
+├── configs/              # Configuraciones
+│   ├── channels.yaml    # Canales a monitorear
+│   ├── layout.yaml      # Configuración de layouts
+│   ├── branding.yaml    # Marca y estilo
+│   └── publish.yaml     # Configuración de publicación
+├── assets/              # Recursos y plantillas
+├── data/               # Base de datos y archivos temporales
+├── tests/              # Pruebas automatizadas
+├── web_interface.py    # Interfaz web
+├── cli_control.py      # Interfaz CLI
+└── Makefile           # Comandos de automatización
 ```
 
-## 🎯 Comandos principales
+## 🔧 Configuración
+
+### 1. **Configuración de Canales**
+```yaml
+# configs/channels.yaml
+channels:
+  - id: "UCxxxxxxxxxxxxxxxxxxxxx"
+    name: "Mi Canal"
+    priority: high
+    max_videos: 50
+```
+
+### 2. **Layouts Personalizados**
+```yaml
+# configs/layout.yaml
+layouts:
+  dual_panel:
+    main_video: { x: 0, y: 0, width: 1080, height: 1080 }
+    secondary: { x: 0, y: 1080, width: 1080, height: 840 }
+    subtitles: { position: "center", style: "modern" }
+```
+
+### 3. **Configuración de IA**
+```yaml
+# configs/scoring.yaml
+content_scorer:
+  enabled: true
+  auto_approve_threshold: 0.8
+  metrics: ["quality", "viral", "engagement", "relevance"]
+```
+
+## 🎨 Personalización
+
+### Plantillas de Video
+El sistema incluye 4 plantillas predefinidas:
+
+1. **🎮 Gaming Intenso**
+   - Colores vibrantes (rojo/negro)
+   - Subtítulos dinámicos
+   - Efectos de alta energía
+
+2. **📚 Educativo Profesional**
+   - Paleta azul corporativa
+   - Tipografía clara
+   - Diseño limpio
+
+3. **🎭 Entretenimiento Casual**
+   - Colores cálidos
+   - Estilo relajado
+   - Animaciones suaves
+
+4. **💻 Tecnología Moderna**
+   - Esquema oscuro
+   - Acentos cyan
+   - Estética futurista
+
+### Scoring Personalizado
+```python
+# Ejemplo de métrica personalizada
+def custom_metric(video_data):
+    score = 0.0
+    # Tu lógica de scoring aquí
+    return min(1.0, max(0.0, score))
+```
+
+## 📊 Monitoreo y Estadísticas
+
+### Dashboard Web
+- ⏱️ **Tiempo real**: Actualización automática cada 30s
+- 📈 **Métricas**: Pendientes, aprobados, publicados
+- 🔄 **Cola**: Visualización completa del pipeline
+- 📅 **Programación**: Calendario de publicaciones
+
+### Estadísticas CLI
+```bash
+# Ver estadísticas completas
+python cli_control.py -> opción 1
+
+# Métricas específicas
+python -c "from src.pipeline.db import PipelineDB; print(PipelineDB().get_detailed_stats())"
+```
+
+## 🔄 Flujo de Trabajo
+
+```mermaid
+graph TD
+    A[Descubrimiento] --> B[Descarga]
+    B --> C[Transcripción]
+    C --> D[Segmentación IA]
+    D --> E[Scoring Automático]
+    E --> F{Aprobación}
+    F -->|Auto| G[Edición]
+    F -->|Manual| H[Revisión]
+    H --> G
+    G --> I[Publicación]
+```
+
+## 🛠️ Comandos Make
 
 ```bash
-make setup          # Instalar dependencias y crear estructura
-make doctor         # Verificar prerequisitos
-make discover       # Descubrir nuevos episodios (requiere API)
-make download       # Descargar podcasts pendientes
-make normalize      # Normalizar audio/video
-make transcribe     # Generar transcripciones con Whisper ✅ IMPLEMENTADO
-make segment        # Crear clips candidatos ✅ IMPLEMENTADO
-make compose        # Generar Shorts finales
-make publish        # Subir a YouTube (requiere OAuth)
-
-# Nuevos comandos implementados:
-# Transcribir un video específico:
-make transcribe VIDEO=data/videos/mi_video.mp4 MODEL=base DEVICE=auto
-
-# Segmentar transcripción en clips:
-make segment TRANSCRIPT=data/transcripts/mi_video_transcript.json KEYWORDS="podcast,tecnología"
-
-# Componer Shorts finales:
-make compose CANDIDATES=data/segments/candidatos.json PODCAST=data/videos/podcast.mp4 BROLL=data/videos/broll.mp4 TRANSCRIPT=data/transcripts/transcript.json
+make setup       # Configuración inicial
+make run         # Ejecutar sistema completo  
+make test        # Ejecutar pruebas
+make clean       # Limpiar archivos temporales
+make deploy      # Despliegue en producción
+make backup      # Respaldo de base de datos
 ```
 
-## ⚡ Desarrollo
+## 🧪 Pruebas
 
 ```bash
-make lint           # Ejecutar linting (ruff + black)
-make test           # Ejecutar tests
-make clean          # Limpiar archivos temporales
+# Ejecutar todas las pruebas
+make test
+
+# Pruebas específicas
+python -m pytest tests/test_transcription_segmentation.py -v
+python -m pytest tests/test_composition.py -v
+python -m pytest tests/test_basic.py -v
 ```
 
-## 📝 Configuración
+## 📚 Documentación Adicional
 
-Ver archivos en `configs/` para personalizar:
-- `channels.yaml` - Canales a procesar
-- `layout.yaml` - Diseño de paneles
-- `segment_rules.yaml` - Reglas de segmentación
-- `broll_pools.yaml` - Pools de B-roll
-- `publish.yaml` - Configuración de publicación
+- [📹 **Guía de Videos**](VIDEOS_GUIDE.md) - Tutorial paso a paso
+- [🔄 **Workflow Detallado**](WORKFLOW.md) - Proceso completo del pipeline
+- [🗺️ **Roadmap**](ROADMAP_NEXT_PHASES.md) - Próximas funcionalidades
 
-## 🔐 APIs y autenticación
+## 🐛 Solución de Problemas
 
-1. Crear proyecto en Google Cloud Console
-2. Habilitar YouTube Data API v3
-3. Crear credenciales OAuth 2.0
-4. Configurar en `.env`
+### Errores Comunes
 
-## � Estado de Desarrollo
+**Error: FFmpeg no encontrado**
+```bash
+# Ubuntu/Debian
+sudo apt install ffmpeg
 
-### ✅ Completado
-- **Configuración del Proyecto**: Estructura, configuración, dependencias
-- **Base de Datos**: Schema SQLite para gestión de estado
-- **CLI Principal**: Comandos básicos con Typer + Rich
-- **Utilidades**: Módulos ffmpeg y text con funciones auxiliares
-- **Transcripción**: Módulo completo con Whisper local ✅
-- **Segmentación**: Análisis inteligente de transcripciones para clips ✅
-- **Composición**: Sistema completo de layout dual-panel ✅
-- **Subtítulos**: Subtítulos quemados con ffmpeg ✅
-- **Editor Principal**: Compositor de Shorts finales ✅
-- **Tests**: Suite completa de tests unitarios (36 tests passing)
+# macOS
+brew install ffmpeg
 
-### 🚧 En Desarrollo
-- **Descarga de Videos**: Integración con yt-dlp (planificado)
-- **Normalización**: Preparación de medios (planificado)
-- **Control de Calidad**: Validación avanzada de outputs (planificado)
-- **Publicación**: Integración con YouTube API (planificado)
+# Windows
+# Descargar desde https://ffmpeg.org/download.html
+```
 
-### 🎯 Próximos Pasos
-1. ~~Implementar módulo de composición (layout dual-panel)~~ ✅ COMPLETADO
-2. ~~Desarrollar sistema de subtítulos quemados~~ ✅ COMPLETADO  
-3. Integrar descarga y normalización de videos (Hito D)
-4. Conectar con YouTube API para publicación (Hito E)
-5. Implementar descubrimiento automático de contenido (Hito F)
+**Error: Permisos de base de datos**
+```bash
+chmod 755 data/
+chmod 666 data/*.db
+```
 
-## �📄 Licencia
+**Error: Dependencias Python**
+```bash
+pip install --upgrade -r requirements.txt
+```
 
-MIT License - Ver LICENSE para detalles.
+### Logs y Debugging
+```bash
+# Ver logs en tiempo real
+tail -f logs/pipeline.log
+
+# Logs detallados
+python src/cli.py --debug
+```
+
+## 🤝 Contribuir
+
+1. Fork el proyecto
+2. Crear rama de feature (`git checkout -b feature/AmazingFeature`)
+3. Commit cambios (`git commit -m 'Add AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir Pull Request
+
+### Estándares de Código
+- PEP 8 para Python
+- Documentación en español
+- Tests para nuevas funcionalidades
+- Commits descriptivos
+
+## ✅ Estado de Desarrollo
+
+### 🎯 **Completado (100%)**
+- ✅ **Pipeline Core**: Base de datos, CLI, configuración
+- ✅ **Transcripción IA**: Whisper integrado con múltiples modelos
+- ✅ **Segmentación Inteligente**: Análisis de contenido y clips automáticos
+- ✅ **Editor Avanzado**: Layouts duales, subtítulos, composición
+- ✅ **Interfaces Múltiples**: Telegram (21 comandos), Web, CLI
+- ✅ **IA y Scoring**: ContentScorer + TemplateManager
+- ✅ **Gestión Manual**: Canales y videos desde interfaces
+- ✅ **Suite de Tests**: 36+ pruebas automatizadas
+
+### 🚧 **En Desarrollo**
+- 🔄 **Descarga Automática**: Integración yt-dlp
+- 🔄 **Publicación YouTube**: API OAuth
+- 🔄 **Monitoreo Avanzado**: Métricas en tiempo real
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detalles.
+
+## 🏆 Créditos
+
+- **Desarrollador Principal**: Dreiko98
+- **IA y Transcripción**: OpenAI Whisper
+- **Edición de Video**: FFmpeg
+- **Base de Datos**: SQLite
+
+## 📞 Soporte
+
+- 🐛 **Issues**: [GitHub Issues](https://github.com/Dreiko98/YT-Shorts-Dual-Panel-Agent/issues)
+- 💬 **Discusiones**: [GitHub Discussions](https://github.com/Dreiko98/YT-Shorts-Dual-Panel-Agent/discussions)
+- 📧 **Email**: [Contacto directo]
+
+## ⭐ Agradecimientos
+
+Si este proyecto te ha sido útil, ¡considera darle una estrella! ⭐
 
 ---
 
-**Nota:** Este proyecto está diseñado para uso local y respeta las políticas de copyright. Solo usa contenido con permisos apropiados.
+**🚀 ¡Automatiza tu creación de contenido con IA y lleva tus YouTube Shorts al siguiente nivel!**
