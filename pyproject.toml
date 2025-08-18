@@ -71,6 +71,16 @@ Homepage = "https://github.com/Dreiko98/YT-Shorts-Dual-Panel-Agent"
 Repository = "https://github.com/Dreiko98/YT-Shorts-Dual-Panel-Agent.git"
 Issues = "https://github.com/Dreiko98/YT-Shorts-Dual-Panel-Agent/issues"
 
+# Añadido: configuración setuptools para layout basado en src/
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+exclude = []
+namespaces = false
+
 # Herramientas de desarrollo
 [tool.black]
 line-length = 88

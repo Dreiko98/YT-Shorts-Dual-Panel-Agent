@@ -359,10 +359,10 @@ def create_default_layout() -> LayoutConfig:
             )
         },
         subtitle_zone={
-            "x": 40,           # Margen lateral de 40px
-            "y": 920,          # Justo en el centro del canvas (960px)
-            "width": 1000,     # Ancho para subtítulos 
-            "height": 80       # Altura suficiente para subtítulos
+            "x": 60,           # Margen lateral
+            "y": 960,          # Exactamente en el centro (mitad de 1920px)
+            "width": 960,      # Ancho generoso para texto
+            "height": 160      # Altura suficiente para múltiples líneas
         },
         branding_zone={
             "x": 20,

@@ -1,21 +1,21 @@
 # Canales de YouTube a monitorear
 channels:
   # Ejemplo: Canal de tecnología en español
-  - id: "UCxxxxxxxxxxxxxxxxxx"
-    name: "Canal Tech ES"
+  - id: "UC8LeXCWOalN8SxlrPcG-PaQ"
+    name: "midudev"
     enabled: true
     max_videos_per_check: 5
-    min_duration_minutes: 15  # Solo procesar videos largos
+    min_duration_minutes: 5  # Solo procesar videos largos
     keywords_filter: ["tecnología", "programación", "IA", "desarrollo"]
     exclude_keywords: ["en vivo", "stream", "directo"]
   
   # Ejemplo: Canal de ciencia
-  - id: "UCyyyyyyyyyyyyyyyyyy" 
-    name: "Ciencia Divulgativa"
+  - id: "UC36xmz34q02JYaZYKrMwXng" 
+    name: "Nate Gentile"
     enabled: false  # Deshabilitado por ahora
     max_videos_per_check: 3
-    min_duration_minutes: 20
-    keywords_filter: ["ciencia", "física", "matemáticas"]
+    min_duration_minutes: 10
+    keywords_filter: ["tecnología", "programación", "IA", "desarrollo"]
     exclude_keywords: ["patrocinado", "ad"]
 
 # Configuración global de descubrimiento

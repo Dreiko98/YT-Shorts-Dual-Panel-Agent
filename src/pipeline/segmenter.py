@@ -37,6 +37,19 @@ class ClipCandidate:
         """Duración formateada como MM:SS."""
         return format_timestamp(self.duration)
 
+    def dict(self) -> Dict[str, Any]:
+        """Representación serializable (compatibilidad con AI segmenter)."""
+        return {
+            "id": self.id,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "duration": self.duration,
+            "text": self.text,
+            "keywords": self.keywords,
+            "score": self.score,
+            "metadata": self.metadata,
+        }
+
 
 class TranscriptSegmenter:
     """Segmentador de transcripciones en clips candidatos."""

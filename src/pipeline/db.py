@@ -120,6 +120,21 @@ class PipelineDB:
                 CREATE INDEX IF NOT EXISTS idx_broll_usage_asset ON broll_usage(asset_id);
             """)
         logger.info(f"Base de datos inicializada en {self.db_path}")
+        # Aplicar migraciones ligeras (idempotentes)
+        self._apply_migrations()
+
+    def _apply_migrations(self):
+        """Aplicar migraciones de esquema necesarias (idempotentes)."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Añadir columna file_path a videos si no existe
+                cursor = conn.execute("PRAGMA table_info(videos)")
+                cols = {row[1] for row in cursor.fetchall()}
+                if 'file_path' not in cols:
+                    conn.execute("ALTER TABLE videos ADD COLUMN file_path TEXT")
+                    logger.info("Migración: añadida columna videos.file_path")
+        except sqlite3.Error as e:
+            logger.error(f"Error aplicando migraciones: {e}")
     
     def add_video(self, video_data: Dict[str, Any]) -> bool:
         """Añadir nuevo video descubierto."""
@@ -145,6 +160,12 @@ class PipelineDB:
         except sqlite3.Error as e:
             logger.error(f"Error añadiendo video {video_data.get('video_id')}: {e}")
             return False
+
+    def video_exists(self, video_id: str) -> bool:
+        """Verificar si ya existe un video en la base de datos."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("SELECT 1 FROM videos WHERE video_id = ? LIMIT 1", (video_id,))
+            return cursor.fetchone() is not None
     
     def get_pending_downloads(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Obtener videos pendientes de descarga."""
@@ -164,9 +185,9 @@ class PipelineDB:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute("""
                     UPDATE videos 
-                    SET downloaded = 1, status = 'downloaded'
+                    SET downloaded = 1, status = 'downloaded', file_path = ?
                     WHERE video_id = ?
-                """, (video_id,))
+                """, (file_path, video_id))
                 return True
         except sqlite3.Error as e:
             logger.error(f"Error marcando video {video_id} como descargado: {e}")
@@ -215,3 +236,29 @@ class PipelineDB:
                 'composites': row[3] or 0,
                 'uploaded': row[4] or 0
             }
+
+    def get_downloaded_unprocessed(self, limit: int = 3) -> List[Dict[str, Any]]:
+        """Obtener videos descargados aún no procesados (processed=0)."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(
+                """
+                SELECT * FROM videos
+                WHERE downloaded = 1 AND (processed = 0 OR processed IS NULL)
+                ORDER BY published_at DESC
+                LIMIT ?
+                """, (limit,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def mark_video_processed(self, video_id: str) -> bool:
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "UPDATE videos SET processed = 1, status = 'processed' WHERE video_id = ?",
+                    (video_id,),
+                )
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"Error marcando video {video_id} como procesado: {e}")
+            return False

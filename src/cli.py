@@ -17,6 +17,15 @@ from typing_extensions import Annotated
 # Añadir src/ al path para imports
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Cargar variables de entorno desde .env si existe
+try:
+    from dotenv import load_dotenv
+    _env_path = Path('.env')
+    if _env_path.exists():
+        load_dotenv(dotenv_path=_env_path, override=False)
+except Exception:
+    pass
+
 app = typer.Typer(
     name="yts",
     help="🎬 YT Shorts Dual-Panel Agent - Pipeline automatizado para generar YouTube Shorts",
@@ -26,49 +35,170 @@ console = Console()
 
 
 @app.command()
-def discover(
-    channel_ids: Annotated[
-        Optional[str], 
-        typer.Option("--channels", "-c", help="IDs de canales separados por coma")
-    ] = None,
-    max_videos: Annotated[
-        int, 
-        typer.Option("--max", "-m", help="Máximo número de vídeos a descubrir")
-    ] = 50,
-    verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False,
+def pipeline(
+    podcast_video: str = typer.Argument(..., help="Video base del podcast (vertical o recortable)"),
+    broll_video: str = typer.Argument(..., help="Video b-roll para panel inferior"),
+    workdir: str = typer.Option("data", help="Directorio raíz de trabajo"),
+    model: str = typer.Option("base", help="Modelo Whisper"),
+    language: str = typer.Option(None, help="Forzar idioma"),
+    max_clips: int = typer.Option(3, help="Máx shorts a generar"),
+    fast_subs: bool = typer.Option(True, help="Activar subtítulos rápidos"),
+    words_target: int = typer.Option(2, help="Palabras por subtítulo en modo rápido"),
+    min_sub: float = typer.Option(0.30, help="Duración mínima subtítulo"),
+    max_sub: float = typer.Option(0.90, help="Duración máxima subtítulo"),
+    decorated: bool = typer.Option(True, help="Ciclar colores y halo animado"),
 ):
-    """🔍 Descubrir nuevos episodios de podcast usando YouTube Data API."""
-    rprint("[yellow]🔍 Descubriendo nuevos episodios...[/yellow]")
+    """Pipeline completa: transcribir -> segmentar IA -> componer shorts.
+    Requiere: ffmpeg, whisper instalado y API OpenAI configurada para segmentación IA.
+    """
+    import os, json
+    from pathlib import Path
+    from .pipeline.transcribe import transcribe_video_file, check_whisper_requirements
+    from .pipeline.ai_segmenter import AITranscriptSegmenter, AISegmentationConfig
+    from .pipeline.editor import compose_short_from_files
     
-    if not channel_ids:
-        rprint("[red]❌ No se especificaron canales. Usa --channels o configura channels.yaml[/red]")
+    base = Path(workdir)
+    transcripts_dir = base / 'transcripts'
+    segments_dir = base / 'segments'
+    shorts_dir = base / 'shorts'
+    for d in (transcripts_dir, segments_dir, shorts_dir):
+        d.mkdir(parents=True, exist_ok=True)
+
+    podcast_path = Path(podcast_video)
+    broll_path = Path(broll_video)
+    if not podcast_path.exists() or not broll_path.exists():
+        rprint("[red]❌ Archivos de entrada no encontrados[/red]")
         raise typer.Exit(1)
+
+    # Cache de transcripción (usa hash simple por tamaño+mtime)
+    transcript_json = transcripts_dir / f"{podcast_path.stem}_transcript.json"
+    if transcript_json.exists():
+        rprint(f"[cyan]🗃️  Usando transcripción cacheada:[/cyan] {transcript_json}")
+    else:
+        rprint("[cyan]🎤 Transcribiendo...[/cyan]")
+        req = check_whisper_requirements()
+        if not req['whisper_installed'] or not req['torch_available']:
+            rprint("[red]❌ Whisper o PyTorch no disponibles[/red]")
+            raise typer.Exit(1)
+        tr_result = transcribe_video_file(podcast_path, transcripts_dir, model=model, device='auto', language=language)
+        if not tr_result.get('success'):
+            rprint("[red]❌ Falló transcripción[/red]"); raise typer.Exit(1)
+        transcript_json = Path(tr_result['transcript_json'])
+        rprint(f"[green]✅ Transcripción lista:[/green] {transcript_json}")
+
+    rprint("[magenta]🤖 Segmentando con IA...[/magenta]")
+    ai_conf = AISegmentationConfig(max_clips=max_clips, min_duration=15, max_duration=59, target_duration=30)
+    ai_seg = AITranscriptSegmenter(ai_conf)
+    export_path = segments_dir / f"{transcript_json.stem}_candidates.json"
+    try:
+        candidates = ai_seg.segment_transcript(transcript_json)
+        if not candidates:
+            raise RuntimeError("IA no devolvió candidatos")
+        with open(export_path, 'w', encoding='utf-8') as f:
+            json.dump({"candidates": [c.dict() for c in candidates]}, f, ensure_ascii=False, indent=2)
+        rprint(f"[green]✅ Candidatos IA:[/green] {export_path}")
+    except Exception as e:
+        rprint(f"[yellow]⚠️  IA falló ({e}); usando segmentación clásica[/yellow]")
+        from .pipeline.segmenter import segment_transcript_file
+        classic_conf = {
+            "min_clip_duration": 15,
+            "max_clip_duration": 59,
+            "target_clip_duration": 30,
+            "overlap_threshold": 0.1,
+            "scoring_weights": {"keyword_match":0.3,"sentence_completeness":0.25,"duration_fit":0.25,"speech_quality":0.2},
+            "important_keywords": []
+        }
+        candidates = segment_transcript_file(transcript_path=transcript_json, output_dir=segments_dir, config=classic_conf)
+        if not candidates:
+            rprint('[red]❌ Sin candidatos tras fallback[/red]'); raise typer.Exit(1)
+        with open(export_path, 'w', encoding='utf-8') as f:
+            json.dump({"candidates": [c.dict() for c in candidates]}, f, ensure_ascii=False, indent=2)
+        rprint(f"[green]✅ Candidatos (fallback):[/green] {export_path}")
+
+    if fast_subs:
+        os.environ['SHORT_SUB_MODE'] = 'fast'
+        os.environ['FAST_WORDS_TARGET'] = str(words_target)
+        os.environ['FAST_SUB_MIN'] = str(min_sub)
+        os.environ['FAST_SUB_MAX'] = str(max_sub)
+        if decorated:
+            os.environ['FAST_SUB_COLOR_CYCLE'] = '1'
+            os.environ['FAST_SUB_BOUNCE'] = '1'
     
-    # TODO: Implementar discovery.py
-    rprint("[blue]📋 Canales a procesar:[/blue]", channel_ids)
-    rprint(f"[blue]📊 Límite de vídeos:[/blue] {max_videos}")
-    rprint("[yellow]⚠️  Funcionalidad pendiente de implementar[/yellow]")
+    rprint("[yellow]🎬 Componiendo shorts...[/yellow]")
+    results = compose_short_from_files(podcast_path, broll_path, transcript_json, export_path, shorts_dir, max_shorts=max_clips)
+    ok = sum(1 for r in results if r.get('success'))
+    rprint(f"[green]✅ Shorts generados:[/green] {ok}/{len(results)}")
+    for r in results:
+        if r.get('success'):
+            rprint(f"  • {r['output_path']}")
+
+    # Métricas agregadas
+    metrics = {
+        "total_candidates": len(results),
+        "successful": ok,
+        "failed": len(results) - ok,
+        "avg_duration": round(sum(r.get('duration',0) for r in results if r.get('success'))/ok,2) if ok else 0,
+        "total_render_time_est_s": None,
+    }
+    metrics_path = shorts_dir / 'pipeline_metrics.json'
+    with open(metrics_path, 'w', encoding='utf-8') as f:
+        json.dump(metrics, f, ensure_ascii=False, indent=2)
+    rprint(f"[blue]📊 Métricas guardadas:[/blue] {metrics_path}")
+    rprint('[bold green]🏁 Pipeline completa[/bold green]')
+@app.command()
+def discover(
+    config: Path = typer.Option(Path("configs/channels.yaml"), exists=True, help="Ruta a channels.yaml"),
+    db_path: Path = typer.Option(Path("data/pipeline.db"), help="Ruta a la base de datos"),
+):
+    """🔍 Descubrir nuevos videos largos candidatos y almacenarlos en la base de datos.
+
+    Usa configs/channels.yaml para definir canales y filtros. Requiere YOUTUBE_API_KEY.
+    """
+    from .pipeline.db import PipelineDB
+    from .pipeline.discovery import discover_new_videos, DiscoveryError
+
+    rprint("[yellow]🔍 Ejecutando discovery...[/yellow]")
+    db = PipelineDB(str(db_path))
+    try:
+        new_videos = discover_new_videos(db, config)
+    except DiscoveryError as e:
+        rprint(f"[red]❌ Error discovery: {e}[/red]")
+        raise typer.Exit(1)
+
+    if not new_videos:
+        rprint("[cyan]ℹ️  No se encontraron nuevos videos[/cyan]")
+    else:
+        rprint(f"[green]✅ Nuevos videos: {len(new_videos)}[/green]")
+        for v in new_videos:
+            rprint(f"  • {v['video_id']} | {v['duration_seconds']//60}m | {v['title'][:70]}")
 
 
 @app.command()
 def download(
-    limit: Annotated[
-        int, 
-        typer.Option("--limit", "-l", help="Límite de descargas simultáneas")
-    ] = 3,
-    quality: Annotated[
-        str, 
-        typer.Option("--quality", "-q", help="Calidad de descarga")
-    ] = "best[height<=1080]",
-    verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False,
+    limit: Annotated[int, typer.Option("--limit", "-l", help="Máx videos a descargar")] = 3,
+    db_path: Annotated[Path, typer.Option(help="Ruta DB")] = Path("data/pipeline.db"),
+    base_dir: Annotated[Path, typer.Option(help="Directorio base datos/raw")]=Path("data"),
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Logs debug")]=False,
 ):
-    """⬇️  Descargar podcasts pendientes usando yt-dlp."""
-    rprint("[yellow]⬇️  Descargando podcasts pendientes...[/yellow]")
-    
-    # TODO: Implementar downloader.py
-    rprint(f"[blue]📊 Límite simultáneo:[/blue] {limit}")
-    rprint(f"[blue]🎥 Calidad:[/blue] {quality}")
-    rprint("[yellow]⚠️  Funcionalidad pendiente de implementar[/yellow]")
+    """⬇️  Descargar videos pendientes (status=discovered) con yt-dlp."""
+    from .pipeline.db import PipelineDB
+    from .pipeline.downloader import download_pending
+    import logging
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    rprint("[yellow]⬇️  Descargando videos pendientes...[/yellow]")
+    db = PipelineDB(str(db_path))
+    results = download_pending(db, limit=limit, base_dir=base_dir)
+    if not results:
+        rprint("[cyan]ℹ️  No hay videos pendientes[/cyan]")
+        raise typer.Exit()
+    ok = sum(1 for r in results if r['success'])
+    rprint(f"[green]✅ Descargados correctamente:[/green] {ok}/{len(results)}")
+    for r in results:
+        if r['success']:
+            rprint(f"  • {r['video_id']} -> {r['file_path']}")
+        else:
+            rprint(f"  • {r['video_id']} [red]Error:[/red] {r['error']}")
 
 
 @app.command()
@@ -566,19 +696,57 @@ def publish(
 
 
 @app.command()
+def autopipeline(
+    max_videos: Annotated[int, typer.Option(help="Máx videos a procesar en este ciclo")] = 1,
+    max_shorts: Annotated[int, typer.Option(help="Máx shorts por video")] = 3,
+    db_path: Annotated[Path, typer.Option(help="Ruta DB")] = Path("data/pipeline.db"),
+    workdir: Annotated[Path, typer.Option(help="Directorio trabajo")] = Path("data"),
+    whisper_model: Annotated[str, typer.Option(help="Modelo Whisper")] = "base",
+    language: Annotated[str, typer.Option(help="Idioma forzado",)] = None,
+):
+    """🤖 Ejecuta discover→download→transcribe→segment→compose secuencial para nuevos videos."""
+    from .pipeline.autopipeline import run_autopipeline
+    rprint("[yellow]🤖 Ejecutando autopipeline...[/yellow]")
+    results = run_autopipeline(
+        db_path=db_path,
+        workdir=workdir,
+        max_videos=max_videos,
+        max_shorts_per_video=max_shorts,
+        whisper_model=whisper_model,
+        language=language,
+    )
+    if not results:
+        rprint("[cyan]ℹ️  Nada que procesar[/cyan]")
+        return
+    for r in results:
+        if r['success']:
+            rprint(f"[green]✅ {r['video_id']} -> shorts: {r.get('shorts_generated',0)}[/green]")
+        else:
+            rprint(f"[red]❌ {r['video_id']} {r.get('error')}")
+
+
+@app.command()
 def status():
     """📊 Mostrar estado actual del pipeline."""
-    rprint(Panel.fit(
-        "[bold blue]📊 Estado del Pipeline[/bold blue]\n\n"
-        "[dim]🔍 Videos descubiertos:[/dim] 0\n"
-        "[dim]⬇️  Videos descargados:[/dim] 0\n"
-        "[dim]📝 Transcripciones:[/dim] 0\n"
-        "[dim]✂️  Clips generados:[/dim] 0\n"
-        "[dim]🎬 Shorts compuestos:[/dim] 0\n"
-        "[dim]📤 Publicados:[/dim] 0\n\n"
-        "[yellow]⚠️  Base de datos no inicializada[/yellow]",
-        title="Estado",
-    ))
+    from .pipeline.db import PipelineDB
+    db_path = Path("data/pipeline.db")
+    if db_path.exists():
+        db = PipelineDB(str(db_path))
+        stats = db.get_stats()
+        body = (
+            "[bold blue]📊 Estado del Pipeline[/bold blue]\n\n"
+            f"[dim]🔍 Videos descubiertos:[/dim] {stats['total_videos']}\n"
+            f"[dim]⬇️  Videos descargados:[/dim] {stats['downloaded']}\n"
+            f"[dim]✂️  Clips generados:[/dim] {stats['segments']}\n"
+            f"[dim]🎬 Shorts compuestos:[/dim] {stats['composites']}\n"
+            f"[dim]📤 Publicados:[/dim] {stats['uploaded']}\n"
+        )
+    else:
+        body = (
+            "[bold blue]📊 Estado del Pipeline[/bold blue]\n\n"
+            "[yellow]⚠️  Base de datos no inicializada[/yellow]"
+        )
+    rprint(Panel.fit(body, title="Estado"))
 
 
 @app.command()

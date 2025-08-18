@@ -93,10 +93,13 @@ class ShortComposer:
             
             # 4. Añadir subtítulos si se solicita
             if include_subtitles:
+                logger.info(f"🔥 DEBUG: Añadiendo subtítulos al candidato {candidate.id}")
                 final_path = self._add_subtitles_to_composition(
                     composed_path, candidate, transcript_data, output_path
                 )
+                logger.info(f"🔥 DEBUG: Subtítulos procesados, archivo final: {final_path}")
             else:
+                logger.info(f"🔥 DEBUG: Subtítulos DESHABILITADOS para candidato {candidate.id}")
                 # Simplemente mover archivo compuesto al destino final
                 composed_path.rename(output_path)
                 final_path = output_path
@@ -303,10 +306,14 @@ class ShortComposer:
                                     transcript_data: Dict[str, Any],
                                     output_path: Path) -> Path:
         """Añadir subtítulos quemados a la composición."""
+        logger.info(f"🎬 DEBUG: Iniciando proceso de subtítulos para {candidate.id}")
+        
         # Filtrar segmentos de transcripción relevantes
         relevant_segments = self._filter_transcript_segments(
             transcript_data, candidate.start_time, candidate.end_time
         )
+        
+        logger.info(f"📝 DEBUG: Segmentos relevantes encontrados: {len(relevant_segments)}")
         
         if not relevant_segments:
             logger.warning(f"No hay segmentos de transcripción para candidato {candidate.id}")
@@ -320,6 +327,7 @@ class ShortComposer:
         }
         
         subtitles = create_subtitles_from_transcript(subtitle_data)
+        logger.info(f"🔤 DEBUG: Subtítulos creados desde transcripción: {len(subtitles)}")
         
         if not subtitles:
             logger.warning("No se pudieron crear subtítulos")
@@ -352,11 +360,20 @@ class ShortComposer:
                     subtitle.end_time = adjusted_end
                     adjusted_subtitles.append(subtitle)
         
+        logger.info(f"⏱️ DEBUG: Subtítulos ajustados: {len(adjusted_subtitles)}")
+        for i, sub in enumerate(adjusted_subtitles[:3]):
+            logger.info(f"   {i+1}: {sub.start_time:.1f}s-{sub.end_time:.1f}s: {sub.text[:30]}...")
+        
         # Renderizar subtítulos
         safe_zone = self.layout_config.subtitle_zone
+        logger.info(f"🎯 DEBUG: Safe zone: {safe_zone}")
+        logger.info(f"🎬 DEBUG: Renderizando subtítulos: {video_path} -> {output_path}")
+        
         success = self.subtitle_renderer.add_subtitles_to_video(
             video_path, adjusted_subtitles, output_path, safe_zone
         )
+        
+        logger.info(f"✅ DEBUG: Renderizado de subtítulos: {'EXITOSO' if success else 'FALLÓ'}")
         
         if not success:
             logger.warning("Error añadiendo subtítulos, usando video sin subtítulos")
