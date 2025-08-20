@@ -22,8 +22,8 @@ from .db import PipelineDB
 logger = logging.getLogger(__name__)
 
 YTDLP_CMD_TEMPLATE = (
-    "yt-dlp -f 'bv*[height<=1080]+ba/b[height<=1080]' --merge-output-format mp4 "
-    "--no-playlist --no-colors --quiet --progress --newline -o {output} https://www.youtube.com/watch?v={video_id}"
+    "yt-dlp -f bestvideo[height<=1080]+bestaudio/best[height<=1080]/best "
+    "--merge-output-format mp4 --no-playlist --no-colors --quiet --progress --newline -o {output} https://www.youtube.com/watch?v={video_id}"
 )
 
 def ensure_dir(path: Path):

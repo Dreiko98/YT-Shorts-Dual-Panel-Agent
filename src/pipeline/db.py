@@ -12,6 +12,67 @@ logger = logging.getLogger(__name__)
 
 
 class PipelineDB:
+
+    def get_approved_composites(self, limit: int = 10) -> list:
+        """
+        Devuelve una lista de shorts (composites) ya aprobados/subidos (uploaded=1), incluyendo el título del video.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(
+                """
+                SELECT composites.*, videos.title as title
+                FROM composites
+                LEFT JOIN videos ON composites.video_id = videos.video_id
+                WHERE composites.uploaded = 1
+                ORDER BY composites.upload_date DESC
+                LIMIT ?
+                """,
+                (limit,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_pending_review_composites(self, limit: int = 20) -> list:
+        """
+        Devuelve una lista de shorts (composites) pendientes de revisión (status='ready'), incluyendo el título del video.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(
+                """
+                SELECT composites.*, videos.title as title
+                FROM composites
+                LEFT JOIN videos ON composites.video_id = videos.video_id
+                WHERE composites.status = 'ready' AND (composites.uploaded = 0 OR composites.uploaded IS NULL)
+                ORDER BY composites.created_at DESC
+                LIMIT ?
+                """,
+                (limit,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_queue_stats(self):
+        """
+        Devuelve estadísticas simples de la cola de procesamiento.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM videos WHERE status='discovered'")
+            pending = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM videos WHERE status='downloaded'")
+            downloaded = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM videos WHERE status='processed'")
+            processed = cur.fetchone()[0]
+        return {
+            'pending': pending,
+            'downloaded': downloaded,
+            'processed': processed
+        }
+    def is_daemon_paused(self):
+        """
+        Devuelve False por defecto. Implementa lógica real si quieres pausar el daemon desde la base de datos.
+        """
+        return False
     """Gestor de base de datos SQLite para el pipeline."""
     
     def __init__(self, db_path: str = "data/pipeline.db"):
