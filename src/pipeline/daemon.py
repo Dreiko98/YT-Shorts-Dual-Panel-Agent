@@ -33,7 +33,7 @@ class PipelineDaemon:
         os.makedirs(os.path.dirname(log_file), exist_ok=True)
         
         logging.basicConfig(
-            level=getattr(logging, self.config.get('LOG_LEVEL', 'INFO')),
+            level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
                 logging.FileHandler(log_file),

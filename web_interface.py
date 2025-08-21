@@ -22,8 +22,20 @@ import os
 import json
 from pathlib import Path
 
+
+# Exponer carpeta de vídeos como ruta estática
+from flask import send_from_directory
+
 app = Flask(__name__)
 app.secret_key = 'dev-key-temporal'
+
+# Ruta absoluta a la carpeta donde se guardan los vídeos (ajusta si usas otra)
+VIDEO_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data/shorts_auto'))
+
+# Servir archivos de vídeo desde /media/<filename>
+@app.route('/media/<path:filename>')
+def media(filename):
+    return send_from_directory(VIDEO_FOLDER, filename)
 
 @app.route('/health')
 def health_check():
@@ -163,13 +175,19 @@ HTML_TEMPLATE = """
             {% for short in pending_shorts %}
             <div class="short-item status-{{ short.review_status }}">
                 <h4>📱 {{ short.clip_id[:12] }}...</h4>
-                <p><strong>Título:</strong> {{ short.original_title[:80] }}{% if short.original_title|length > 80 %}...{% endif %}</p>
+                <p><strong>Título:</strong> {{ short.title[:80] if short.title else 'Sin título' }}{% if short.title and short.title|length > 80 %}...{% endif %}</p>
                 <p><strong>Duración:</strong> {{ short.duration_seconds }}s | <strong>Creado:</strong> {{ short.created_at[:16] }}</p>
                 
                 {% if short.output_path and short.output_path.endswith('.mp4') %}
                 <div class="preview-section">
                     <strong>🎬 Vista Previa:</strong> {{ short.output_path.split('/')[-1] }}
                     <br><small>Archivo: {{ short.output_path }}</small>
+                    <br>
+                    {% set video_filename = short.output_path.split('/')[-1] %}
+                    <video width="320" height="570" controls style="margin-top:10px; background:#000;" preload="metadata">
+                        <source src="{{ url_for('media', filename=video_filename) }}" type="video/mp4">
+                        Tu navegador no soporta la previsualización de video.
+                    </video>
                 </div>
                 {% endif %}
 
@@ -194,7 +212,7 @@ HTML_TEMPLATE = """
             {% for short in approved_shorts %}
             <div class="short-item status-approved">
                 <h4>📱 {{ short.clip_id[:12] }}...</h4>
-                <p><strong>Título:</strong> {{ short.original_title[:80] }}{% if short.original_title|length > 80 %}...{% endif %}</p>
+                <p><strong>Título:</strong> {{ short.title[:80] if short.title else 'Sin título' }}{% if short.title and short.title|length > 80 %}...{% endif %}</p>
                 <p><strong>Aprobado:</strong> {{ short.reviewed_at[:16] if short.reviewed_at else 'N/A' }}</p>
                 {% if short.scheduled_publish_at %}
                 <p><strong>📅 Programado:</strong> {{ short.scheduled_publish_at }}</p>
