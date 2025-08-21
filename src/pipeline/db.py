@@ -262,3 +262,350 @@ class PipelineDB:
         except sqlite3.Error as e:
             logger.error(f"Error marcando video {video_id} como procesado: {e}")
             return False
+
+    def get_queue_stats(self) -> Dict[str, int]:
+        """Obtener estadísticas de la cola de revisión."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("""
+                    SELECT 
+                        (SELECT COUNT(*) FROM composites WHERE status = 'pending_review' OR status IS NULL) as pending_review,
+                        (SELECT COUNT(*) FROM composites WHERE status = 'approved') as approved,
+                        (SELECT COUNT(*) FROM composites WHERE status = 'rejected') as rejected,
+                        (SELECT COUNT(*) FROM composites WHERE uploaded = 1) as published
+                """)
+                row = cursor.fetchone()
+                return {
+                    'pending_review': row[0] or 0,
+                    'approved': row[1] or 0,
+                    'rejected': row[2] or 0,
+                    'published': row[3] or 0
+                }
+        except sqlite3.Error as e:
+            logger.error(f"Error obteniendo estadísticas de cola: {e}")
+            return {'pending_review': 0, 'approved': 0, 'rejected': 0, 'published': 0}
+
+    def is_daemon_paused(self) -> bool:
+        """Verificar si el daemon está pausado."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Crear tabla de configuración si no existe
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS config (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    )
+                """)
+                cursor = conn.execute("SELECT value FROM config WHERE key = 'daemon_paused'")
+                row = cursor.fetchone()
+                return row and row[0] == 'true'
+        except sqlite3.Error as e:
+            logger.error(f"Error verificando estado del daemon: {e}")
+            return False
+
+    def set_daemon_paused(self, paused: bool) -> bool:
+        """Pausar/reanudar el daemon."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Crear tabla de configuración si no existe
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS config (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    )
+                """)
+                conn.execute("""
+                    INSERT OR REPLACE INTO config (key, value, updated_at)
+                    VALUES ('daemon_paused', ?, ?)
+                """, ('true' if paused else 'false', datetime.now().isoformat()))
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"Error estableciendo estado del daemon: {e}")
+            return False
+
+    def get_pending_review_composites(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """Obtener composites pendientes de revisión."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT c.*, v.title as original_title 
+                    FROM composites c
+                    LEFT JOIN videos v ON c.video_id = v.video_id
+                    WHERE c.status = 'pending_review' OR c.status IS NULL OR c.status = 'ready'
+                    ORDER BY c.created_at DESC
+                    LIMIT ?
+                """, (limit,))
+                return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            logger.error(f"Error obteniendo composites pendientes: {e}")
+            return []
+
+    def get_approved_composites(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Obtener composites aprobados."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT c.*, v.title as original_title 
+                    FROM composites c
+                    LEFT JOIN videos v ON c.video_id = v.video_id
+                    WHERE c.status = 'approved' AND c.uploaded = 0
+                    ORDER BY c.created_at DESC
+                    LIMIT ?
+                """, (limit,))
+                return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            logger.error(f"Error obteniendo composites aprobados: {e}")
+            return []
+
+    def approve_composite(self, clip_id: str, comment: str = "", scheduled_at: str = None, auto_approved: bool = False) -> bool:
+        """Aprobar un composite."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                update_sql = """
+                    UPDATE composites 
+                    SET status = 'approved', reviewed_at = ?, auto_approved = ?
+                """
+                params = [datetime.now().isoformat(), 1 if auto_approved else 0]
+                
+                if comment:
+                    update_sql += ", review_comment = ?"
+                    params.append(comment)
+                
+                if scheduled_at:
+                    update_sql += ", scheduled_publish_at = ?"
+                    params.append(scheduled_at)
+                
+                update_sql += " WHERE clip_id = ?"
+                params.append(clip_id)
+                
+                conn.execute(update_sql, params)
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"Error aprobando composite {clip_id}: {e}")
+            return False
+
+    def auto_approve_quality_clips(self, min_score: float = 0.7) -> int:
+        """Auto-aprobar clips de alta calidad."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Buscar clips pendientes con alta puntuación
+                cursor = conn.execute("""
+                    SELECT clip_id FROM composites 
+                    WHERE (status = 'pending_review' OR status IS NULL)
+                    AND (quality_score >= ? OR engagement_score >= ?)
+                    AND created_at < datetime('now', '-1 hour')
+                    LIMIT 10
+                """, (min_score, min_score))
+                
+                clips_to_approve = [row[0] for row in cursor.fetchall()]
+                approved_count = 0
+                
+                for clip_id in clips_to_approve:
+                    if self.approve_composite(clip_id, "Auto-approved: High quality score", auto_approved=True):
+                        approved_count += 1
+                        logger.info(f"Auto-aprobado clip {clip_id}")
+                
+                return approved_count
+        except sqlite3.Error as e:
+            logger.error(f"Error en auto-aprobación: {e}")
+            return 0
+
+    def get_next_scheduled_clip(self) -> Dict[str, Any]:
+        """Obtener el próximo clip programado para publicar."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT c.*, v.title as original_title 
+                    FROM composites c
+                    LEFT JOIN videos v ON c.video_id = v.video_id
+                    WHERE c.status = 'approved' 
+                    AND c.uploaded = 0
+                    AND (c.scheduled_publish_at IS NULL OR c.scheduled_publish_at <= datetime('now'))
+                    ORDER BY c.priority DESC, c.created_at ASC
+                    LIMIT 1
+                """)
+                row = cursor.fetchone()
+                return dict(row) if row else {}
+        except sqlite3.Error as e:
+            logger.error(f"Error obteniendo próximo clip programado: {e}")
+            return {}
+
+    def can_publish_now(self, hours_between_posts: int = 4, max_posts_per_day: int = 3) -> bool:
+        """Verificar si se puede publicar ahora según las reglas de espaciado."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Verificar última publicación
+                cursor = conn.execute("""
+                    SELECT uploaded_at FROM composites 
+                    WHERE uploaded = 1 
+                    ORDER BY uploaded_at DESC 
+                    LIMIT 1
+                """)
+                last_post = cursor.fetchone()
+                
+                if last_post:
+                    last_time = datetime.fromisoformat(last_post[0])
+                    time_diff = datetime.now() - last_time
+                    if time_diff.total_seconds() < hours_between_posts * 3600:
+                        return False
+                
+                # Verificar posts del día
+                cursor = conn.execute("""
+                    SELECT COUNT(*) FROM composites 
+                    WHERE uploaded = 1 
+                    AND date(uploaded_at) = date('now')
+                """)
+                posts_today = cursor.fetchone()[0]
+                
+                return posts_today < max_posts_per_day
+        except sqlite3.Error as e:
+            logger.error(f"Error verificando si se puede publicar: {e}")
+            return False
+
+    def mark_as_published(self, clip_id: str, youtube_url: str = "") -> bool:
+        """Marcar un composite como publicado."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    UPDATE composites 
+                    SET uploaded = 1, uploaded_at = ?, youtube_url = ?
+                    WHERE clip_id = ?
+                """, (datetime.now().isoformat(), youtube_url, clip_id))
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"Error marcando como publicado {clip_id}: {e}")
+            return False
+
+    def reject_composite(self, clip_id: str, reason: str = "") -> bool:
+        """Rechazar un composite."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    UPDATE composites 
+                    SET status = 'rejected', reviewed_at = ?, rejection_reason = ?
+                    WHERE clip_id = ?
+                """, (datetime.now().isoformat(), reason, clip_id))
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"Error rechazando composite {clip_id}: {e}")
+            return False
+
+    def get_all_channels(self) -> List[Dict[str, Any]]:
+        """Obtener todos los canales."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT 
+                        c.*,
+                        COUNT(v.video_id) as total_videos,
+                        COUNT(CASE WHEN v.processed = 1 THEN 1 END) as processed_videos,
+                        MAX(v.discovered_at) as last_video_discovery
+                    FROM channels c
+                    LEFT JOIN videos v ON c.channel_id = v.channel_id
+                    GROUP BY c.channel_id
+                    ORDER BY c.name
+                """)
+                results = []
+                for row in cursor.fetchall():
+                    channel_dict = dict(row)
+                    # Agregar campos adicionales esperados por la interfaz
+                    channel_dict['is_active'] = bool(channel_dict.get('enabled', 1))
+                    channel_dict['subscriber_count'] = channel_dict.get('subscriber_count', 0)
+                    channel_dict['description'] = channel_dict.get('description', '')
+                    channel_dict['url'] = channel_dict.get('url', f"https://www.youtube.com/channel/{channel_dict['channel_id']}")
+                    channel_dict['discovered_at'] = channel_dict.get('last_checked', '')
+                    results.append(channel_dict)
+                return results
+        except sqlite3.Error as e:
+            logger.error(f"Error obteniendo canales: {e}")
+            return []
+
+    def add_channel_manually(self, channel_id: str, channel_name: str, channel_url: str = "", 
+                           description: str = "", subscriber_count: int = 0) -> bool:
+        """Añadir canal manualmente."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Primero verificar si ya existe
+                cursor = conn.execute("SELECT 1 FROM channels WHERE channel_id = ?", (channel_id,))
+                if cursor.fetchone():
+                    return False  # Ya existe
+                
+                # Agregar columnas si no existen
+                try:
+                    conn.execute("ALTER TABLE channels ADD COLUMN description TEXT")
+                except sqlite3.OperationalError:
+                    pass  # Columna ya existe
+                
+                try:
+                    conn.execute("ALTER TABLE channels ADD COLUMN url TEXT")
+                except sqlite3.OperationalError:
+                    pass  # Columna ya existe
+                
+                try:
+                    conn.execute("ALTER TABLE channels ADD COLUMN subscriber_count INTEGER DEFAULT 0")
+                except sqlite3.OperationalError:
+                    pass  # Columna ya existe
+                
+                conn.execute("""
+                    INSERT INTO channels (channel_id, name, description, url, subscriber_count, enabled, last_checked)
+                    VALUES (?, ?, ?, ?, ?, 1, ?)
+                """, (channel_id, channel_name, description, channel_url, subscriber_count, datetime.now().isoformat()))
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"Error añadiendo canal {channel_id}: {e}")
+            return False
+
+    def get_videos_by_channel(self, channel_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Obtener videos de un canal."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT v.*, c.name as channel_name
+                    FROM videos v
+                    LEFT JOIN channels c ON v.channel_id = c.channel_id
+                    WHERE v.channel_id = ?
+                    ORDER BY v.published_at DESC
+                    LIMIT ?
+                """, (channel_id, limit))
+                return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            logger.error(f"Error obteniendo videos del canal {channel_id}: {e}")
+            return []
+
+    def add_video_manually(self, video_id: str, channel_id: str, title: str, url: str = "", duration_seconds: int = 0) -> bool:
+        """Añadir video manualmente."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Verificar si ya existe
+                cursor = conn.execute("SELECT 1 FROM videos WHERE video_id = ?", (video_id,))
+                if cursor.fetchone():
+                    return False  # Ya existe
+                
+                conn.execute("""
+                    INSERT INTO videos (video_id, channel_id, title, description, published_at, 
+                                      duration_seconds, discovered_at, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'manual')
+                """, (video_id, channel_id, title, f"Manual: {url}", 
+                     datetime.now().isoformat(), duration_seconds, 
+                     datetime.now().isoformat()))
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"Error añadiendo video {video_id}: {e}")
+            return False
+
+    def delete_channel(self, channel_id: str) -> bool:
+        """Eliminar canal."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("DELETE FROM channels WHERE channel_id = ?", (channel_id,))
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"Error eliminando canal {channel_id}: {e}")
+            return False

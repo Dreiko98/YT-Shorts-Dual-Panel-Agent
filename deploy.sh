@@ -153,7 +153,7 @@ AUTO_PUBLISH_ENABLED=false
 
 # Web Interface
 FLASK_ENV=production
-WEB_PORT=8081
+WEB_PORT=8090
 
 # Timezone
 TZ=Europe/Madrid
@@ -190,13 +190,13 @@ remote_exec "
 log_info "🔍 Verificando despliegue..."
 sleep 15
 
-if remote_exec "curl -f http://localhost:8081/health >/dev/null 2>&1"; then
+if remote_exec "curl -f http://localhost:8090/health >/dev/null 2>&1"; then
     log_success "¡Despliegue exitoso! 🎉"
     echo ""
     echo "==============================================="
     echo "🌐 Accesos disponibles:"
-    echo "   Web Interface: http://$SERVER_IP:8081"
-    echo "   API Health: http://$SERVER_IP:8081/health"
+    echo "   Web Interface: http://$SERVER_IP:8090"
+    echo "   API Health: http://$SERVER_IP:8090/health"
     echo ""
     echo "🐋 Comandos útiles en el servidor:"
     echo "   Ver logs: docker-compose logs -f"

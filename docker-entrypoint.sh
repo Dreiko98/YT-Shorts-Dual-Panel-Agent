@@ -19,7 +19,8 @@ cleanup() {
 trap cleanup SIGTERM SIGINT
 
 # Iniciar servicios en paralelo
-echo "🌐 Starting Web Interface..."
+WEB_PORT="${WEB_PORT:-8081}"
+echo "🌐 Starting Web Interface on port ${WEB_PORT}..."
 python3 web_interface.py &
 WEB_PID=$!
 
@@ -39,7 +40,7 @@ if [ -f ".env" ] && grep -q "TELEGRAM_BOT_TOKEN" .env; then
 fi
 
 echo "✅ All services started successfully!"
-echo "🌐 Web Interface: http://localhost:8081"
+echo "🌐 Web Interface: http://localhost:${WEB_PORT}"
 echo "📊 Access dashboard for monitoring"
 
 # Mantener el contenedor ejecutándose

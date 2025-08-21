@@ -36,7 +36,14 @@ channels:
     keywords_filter: ["inteligencia artificial", "machine learning"]
     exclude_keywords: ["en vivo", "stream", "directo"]
 
-  # 
+  # midulive
+  - id: "UC3aj05GEEyzdOqYM5FLSFeg"
+    name: "midulive"
+    enabled: true
+    max_videos_per_check: 3
+    min_duration_minutes: 3
+    keywords_filter: ["inteligencia artificial", "machine learning"]
+    exclude_keywords: ["en vivo", "stream", "directo"]
   
 
 # Configuración global de descubrimiento

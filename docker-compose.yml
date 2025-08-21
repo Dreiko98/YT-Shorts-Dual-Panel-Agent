@@ -6,7 +6,7 @@ services:
     container_name: yt-shorts-pipeline
     restart: unless-stopped
     ports:
-      - "8081:8081"  # Web Interface
+      - "${WEB_PORT:-8081}:${WEB_PORT:-8081}"  # Web Interface (configurable con WEB_PORT)
       - "5001:5001"  # API adicional si es necesario
     volumes:
       - ./data:/app/data              # Datos persistentes
@@ -22,7 +22,7 @@ services:
     networks:
       - yt-shorts-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:${WEB_PORT:-8081}/health"]
       interval: 30s
       timeout: 10s
       retries: 3

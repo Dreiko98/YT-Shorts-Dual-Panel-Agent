@@ -12,7 +12,11 @@ sys.path.append('src')
 
 from flask import Flask, render_template_string, request, jsonify, redirect, url_for
 from pipeline.db import PipelineDB
-from pipeline.publisher import YouTubePublisher
+# Publisher es opcional; evitamos que un módulo faltante tumbe la interfaz
+try:
+    from pipeline.publisher import YouTubePublisher  # type: ignore
+except Exception:
+    YouTubePublisher = None  # Permite que la app siga funcionando sin publisher
 from datetime import datetime
 import os
 import json
@@ -75,9 +79,24 @@ HTML_TEMPLATE = """
 </head>
 <body>
     <div class="container">
+
         <div class="header">
             <h1>🎬 YT Shorts Control Panel</h1>
             <p>Alternativa web mientras recuperas acceso a Telegram</p>
+        </div>
+
+        <!-- Procesar video por URL -->
+        <div class="bulk-actions" style="background: #fffbe6; border: 1px solid #ffe58f;">
+            <h3>🎯 Procesar video de YouTube por URL</h3>
+            <form method="POST" action="/process_url" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=..." required style="flex:1; min-width:300px;">
+                <button type="submit" class="btn btn-primary">Procesar y Publicar</button>
+            </form>
+            {% if process_url_result %}
+                <div style="margin-top:10px; color: {{ 'green' if process_url_success else 'red' }};">
+                    {{ process_url_result }}
+                </div>
+            {% endif %}
         </div>
 
         <!-- Estado del Sistema -->
@@ -86,6 +105,28 @@ HTML_TEMPLATE = """
             <a href="/toggle_daemon" class="btn btn-warning" style="margin-left: 10px;">
                 {{ "Reanudar" if daemon_paused else "Pausar" }}
             </a>
+        </div>
+
+        <!-- Controles de Auto-Publicación -->
+        <div class="auto-publish-controls" style="margin: 20px 0; padding: 15px; background: #e8f4fd; border-radius: 8px;">
+            <h3>📺 Auto-Publicación</h3>
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <label>
+                        <input type="checkbox" id="autoPublishToggle" onchange="toggleAutoPublish()">
+                        Publicación Automática
+                    </label>
+                </div>
+                <div>
+                    <span id="publishStatus">🔄 Cargando...</span>
+                </div>
+                <div>
+                    <button onclick="forcePublish()" class="btn btn-info">🚀 Publicar Ahora</button>
+                </div>
+                <div>
+                    <small id="publishConfig">Horarios: 10:00, 15:00, 20:00</small>
+                </div>
+            </div>
         </div>
 
         <!-- Estadísticas -->
@@ -182,31 +223,220 @@ HTML_TEMPLATE = """
     <script>
         // Auto-refresh cada 30 segundos
         setTimeout(function(){ location.reload(); }, 30000);
+        
+        // Auto-publish controls
+        async function loadAutoPublishStatus() {
+            try {
+                const response = await fetch('/api/auto-publish/status');
+                const data = await response.json();
+                
+                document.getElementById('autoPublishToggle').checked = data.auto_publish_enabled;
+                document.getElementById('publishStatus').textContent = 
+                    data.auto_publish_enabled ? '✅ Activa' : '⏸️ Inactiva';
+                document.getElementById('publishConfig').textContent = 
+                    `Horarios: ${data.publish_times} | Máx: ${data.max_posts_per_day}/día | Intervalo: ${data.min_hours_between}h`;
+            } catch (error) {
+                console.error('Error loading auto-publish status:', error);
+            }
+        }
+        
+        async function toggleAutoPublish() {
+            const enabled = document.getElementById('autoPublishToggle').checked;
+            
+            try {
+                const response = await fetch('/api/auto-publish/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ enabled: enabled })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('publishStatus').textContent = 
+                        enabled ? '✅ Activa' : '⏸️ Inactiva';
+                    alert(data.message);
+                } else {
+                    alert('Error: ' + data.error);
+                    document.getElementById('autoPublishToggle').checked = !enabled;
+                }
+            } catch (error) {
+                console.error('Error toggling auto-publish:', error);
+                alert('Error de conexión');
+                document.getElementById('autoPublishToggle').checked = !enabled;
+            }
+        }
+        
+        async function forcePublish() {
+            if (!confirm('¿Estás seguro de que quieres publicar el próximo clip ahora?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/force-publish', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error forcing publish:', error);
+                alert('❌ Error de conexión');
+            }
+        }
+        
+        // Cargar estado al iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAutoPublishStatus();
+        });
     </script>
 </body>
 </html>
 """
 
 @app.route('/')
-def dashboard():
+def dashboard(process_url_result=None, process_url_success=None):
     """Dashboard principal"""
     db = PipelineDB()
-    
     # Obtener estadísticas
     queue_stats = db.get_queue_stats()
     daemon_paused = db.is_daemon_paused()
-    
     # Obtener shorts pendientes
     pending_shorts = db.get_pending_review_composites(limit=20)
     approved_shorts = db.get_approved_composites(limit=10)
-    
     return render_template_string(HTML_TEMPLATE,
         queue_stats=queue_stats,
         daemon_paused=daemon_paused,
         pending_shorts=pending_shorts,
         approved_shorts=approved_shorts,
-        current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        process_url_result=process_url_result,
+        process_url_success=process_url_success
     )
+
+@app.route('/process_url', methods=['POST'])
+def process_url():
+    from src.utils.youtube_parser import YouTubeURLParser
+    from src.pipeline.db import PipelineDB
+    from src.pipeline.downloader import download_video, DownloadError
+    from src.pipeline.transcribe import WhisperTranscriber, TranscriptionError
+    from src.pipeline.segmenter import TranscriptSegmenter, SegmentationError
+    from src.pipeline.editor import ShortComposer, CompositionError
+    from src.pipeline.auto_publisher import AutoPublisher
+    import traceback
+    import os
+    import json
+    from pathlib import Path
+    import random
+
+    video_url = request.form.get('video_url', '').strip()
+    if not video_url:
+        return redirect(url_for('dashboard'))
+
+    try:
+        parser = YouTubeURLParser()
+        db = PipelineDB()
+        # 1. Extraer video_id
+        video_id = parser.extract_video_id(video_url)
+        if not video_id:
+            raise Exception('No se pudo extraer el video_id de la URL')
+
+        # 2. Obtener info del video
+        video_info = parser.get_video_info_from_page(video_id)
+        channel_id = video_info.get('channel_id')
+        if not channel_id:
+            raise Exception('No se pudo extraer el channel_id del video')
+
+        # 3. Añadir canal si no existe
+        channels = db.get_all_channels()
+        if not any(c['channel_id'] == channel_id for c in channels):
+            db.add_channel_manually(channel_id, video_info.get('channel_name', 'Canal desconocido'))
+
+        # 4. Añadir video si no existe
+        if not db.video_exists(video_id):
+            db.add_video_manually(
+                video_id=video_id,
+                channel_id=channel_id,
+                title=video_info.get('title', f'Video {video_id}'),
+                url=video_url,
+                duration_seconds=video_info.get('duration_seconds', 0)
+            )
+
+        # 5. Descargar video
+        base_dir = Path('data')
+        podcast_path = download_video(video_id, channel_id, base_dir)
+        db.mark_video_downloaded(video_id, str(podcast_path))
+
+        # 6. Seleccionar B-roll (elige aleatorio de data/raw/broll/*/*.mp4)
+        broll_root = Path('data/raw/broll')
+        broll_candidates = list(broll_root.glob('*/*.mp4')) if broll_root.exists() else []
+        if not broll_candidates:
+            raise Exception('No se encontraron videos de B-roll en data/raw/broll')
+        broll_path = random.choice(broll_candidates)
+
+        # 7. Transcribir
+        whisper_model = os.environ.get('WHISPER_MODEL', 'small')
+        whisper_device = os.environ.get('WHISPER_DEVICE', 'cpu')
+        transcriber = WhisperTranscriber(model_name=whisper_model, device=whisper_device)
+        transcripts_dir = base_dir / 'transcripts'
+        transcript_result = transcriber.transcribe_video(podcast_path, transcripts_dir)
+        transcript_json = transcript_result['transcript_json']
+
+        # 8. Segmentar
+        segmenter_conf = {
+            "min_clip_duration": int(os.environ.get('MIN_CLIP_DURATION', 20)),
+            "max_clip_duration": int(os.environ.get('MAX_CLIP_DURATION', 60)),
+            "target_clip_duration": 30,
+            "overlap_threshold": 0.1,
+            "scoring_weights": {"keyword_match":0.3,"sentence_completeness":0.25,"duration_fit":0.25,"speech_quality":0.2},
+            "important_keywords": []
+        }
+        segmenter = TranscriptSegmenter(segmenter_conf)
+        candidates = segmenter.segment_transcript(Path(transcript_json))
+        if not candidates:
+            raise Exception('No se encontraron segmentos para shorts')
+
+        # 9. Componer shorts
+        shorts_dir = base_dir / 'shorts'
+        with open(transcript_json, 'r', encoding='utf-8') as f:
+            transcript_data = json.load(f)
+        composer = ShortComposer()
+        results = composer.compose_multiple_shorts(
+            candidates=candidates,
+            podcast_video_path=podcast_path,
+            broll_video_path=broll_path,
+            transcript_data=transcript_data,
+            output_dir=shorts_dir,
+            max_shorts=int(os.environ.get('MAX_CLIPS_PER_VIDEO', 3)),
+            include_subtitles=True
+        )
+        # Marcar como procesado
+        db.mark_video_processed(video_id)
+
+        # 10. Auto-aprobar y publicar
+        config = dict(os.environ)
+        publisher = AutoPublisher(db, config)
+        publisher.auto_approve_clips()
+        publisher.run_publishing_cycle()
+
+        process_url_success = True
+        process_url_result = f"✅ Video procesado y shorts publicados correctamente. ({video_url})"
+    except Exception as e:
+        process_url_success = False
+        tb = traceback.format_exc()
+        process_url_result = f"❌ Error procesando video: {e}\n{tb}"
+    return dashboard(process_url_result=process_url_result, process_url_success=process_url_success)
 
 @app.route('/approve/<clip_id>')
 def approve_short(clip_id):
@@ -223,6 +453,71 @@ def reject_short(clip_id):
     if db.reject_composite(clip_id, reason="Rechazado vía Web UI"):
         print(f"❌ Short {clip_id} rechazado vía web")
     return redirect(url_for('dashboard'))
+
+@app.route('/api/auto-publish/toggle', methods=['POST'])
+def toggle_auto_publish():
+    """Activar/desactivar publicación automática"""
+    try:
+        enabled = request.json.get('enabled', False)
+        
+        # Actualizar configuración en la base de datos
+        db = PipelineDB()
+        db.set_daemon_paused(not enabled)
+        
+        return jsonify({
+            'success': True,
+            'auto_publish_enabled': enabled,
+            'message': f"Publicación automática {'activada' if enabled else 'desactivada'}"
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auto-publish/status')
+def auto_publish_status():
+    """Obtener estado de la publicación automática"""
+    try:
+        db = PipelineDB()
+        is_paused = db.is_daemon_paused()
+        
+        return jsonify({
+            'auto_publish_enabled': not is_paused,
+            'publish_times': os.getenv('PUBLISH_TIMES', '10:00,15:00,20:00'),
+            'max_posts_per_day': int(os.getenv('MAX_POSTS_PER_DAY', 3)),
+            'min_hours_between': int(os.getenv('MIN_TIME_BETWEEN_POSTS_HOURS', 4)),
+            'auto_approve_enabled': os.getenv('AUTO_APPROVE_ENABLED', 'false').lower() == 'true'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/force-publish', methods=['POST'])
+def force_publish():
+    """Forzar publicación inmediata del próximo clip"""
+    try:
+        db = PipelineDB()
+        
+        # Obtener próximo clip
+        next_clip = db.get_next_scheduled_clip()
+        if not next_clip:
+            return jsonify({'error': 'No hay clips listos para publicar'}), 400
+        
+        # Simular publicación forzada
+        clip_id = next_clip['clip_id']
+        title = next_clip.get('title', 'Video sin título')
+        
+        # Marcar como publicado
+        success = db.mark_as_published(clip_id, f"https://youtube.com/shorts/forced_{clip_id}")
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Clip "{title}" publicado forzadamente',
+                'clip_id': clip_id
+            })
+        else:
+            return jsonify({'error': 'Error al marcar como publicado'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/schedule/<clip_id>', methods=['POST'])
 def schedule_short(clip_id):
@@ -623,9 +918,11 @@ def delete_channel(channel_id):
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
+    # Permitir configurar el puerto vía variable de entorno (WEB_PORT) con fallback a 8081
+    web_port = int(os.getenv("WEB_PORT", "8081"))
     print("🌐 Iniciando interfaz web alternativa...")
-    print("📱 Accede desde tu navegador: http://localhost:8081")
+    print(f"📱 Accede desde tu navegador: http://localhost:{web_port}")
     print("🔄 La página se actualiza automáticamente cada 30 segundos")
     print("💡 Usa Ctrl+C para detener el servidor")
     
-    app.run(host='0.0.0.0', port=8081, debug=True)
+    app.run(host='0.0.0.0', port=web_port, debug=True)
